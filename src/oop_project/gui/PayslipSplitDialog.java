@@ -1,7 +1,7 @@
 package com.motorph.employeeapp.gui;
 
 import com.motorph.employeeapp.model.Employee;
-import com.motorph.employeeapp.pay.SalaryCalculator;
+import oop_project.pay.SalaryCalculator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
