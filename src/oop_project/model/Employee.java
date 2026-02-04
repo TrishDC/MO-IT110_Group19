@@ -1,4 +1,4 @@
-package com.motorph.employeeapp.model;
+package oop_project.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * Represents an employee and their compensation/details.
  */
-public class Employee {
+public abstract class Employee implements Emp_Interface {
     private final String id;
     private String firstName;
     private String lastName;

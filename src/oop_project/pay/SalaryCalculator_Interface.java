@@ -3,10 +3,9 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
 package oop_project.pay;
-
-import com.motorph.employeeapp.model.Employee;
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import oop_project.model.Employee;
 
 /**
  *

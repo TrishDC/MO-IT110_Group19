@@ -1,9 +1,9 @@
 package oop_project.pay;
 
-import com.motorph.employeeapp.model.Employee;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import oop_project.model.Employee;
 
 
 /**
@@ -16,7 +16,6 @@ public abstract class SalaryCalculator implements SalaryCalculator_Interface{
      * @return  */
     
     
-    @Override
     public  BigDecimal computeMonthlyPay(Employee emp, YearMonth ym) {
         BigDecimal grossMonthly = emp.getGrossSemiMonthlyRate()
                                      .multiply(BigDecimal.valueOf(2));
