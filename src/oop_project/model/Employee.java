@@ -77,15 +77,18 @@ public abstract class Employee implements Emp_Interface {
     }
 
     // --- ID & Name & Date ---
+    /*
+    */@Override
     public String getId() { return id; }
 
+    @Override
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) {
         if (firstName == null || firstName.isBlank())
             throw new IllegalArgumentException("First name cannot be empty");
         this.firstName = firstName.trim();
     }
-
+ @Override
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) {
         if (lastName == null || lastName.isBlank())

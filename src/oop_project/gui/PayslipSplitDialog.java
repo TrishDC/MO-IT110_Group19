@@ -1,8 +1,6 @@
 package com.motorph.employeeapp.gui;
-
-import com.motorph.employeeapp.model.Employee;
+import oop_project.model.Employee;
 import oop_project.pay.SalaryCalculator;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -10,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import oop_project.model.Employee;
 
 public class PayslipSplitDialog extends JDialog {
     private final Employee emp;
@@ -184,7 +183,8 @@ public class PayslipSplitDialog extends JDialog {
 
         BigDecimal gross = emp.getGrossSemiMonthlyRate().multiply(BigDecimal.valueOf(2));
         grossF.setText(gross.toPlainString());
-
+        
+       
         BigDecimal earned = SalaryCalculator.computeMonthlyPay(emp, ym);
         earnedF.setText(earned.toPlainString());
 

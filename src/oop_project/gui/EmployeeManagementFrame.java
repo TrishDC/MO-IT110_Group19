@@ -1,6 +1,5 @@
 package com.motorph.employeeapp.gui;
 
-import com.motorph.employeeapp.model.Employee;
 import com.motorph.employeeapp.repository.CsvEmployeeRepository;
 import com.motorph.employeeapp.repository.EmployeeRepository;
 import javax.swing.*;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import oop_project.model.Employee;
 
 public class EmployeeManagementFrame extends JFrame {
     private final EmployeeRepository repo;

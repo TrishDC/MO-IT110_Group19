@@ -1,6 +1,6 @@
 package com.motorph.employeeapp.gui;
 
-import com.motorph.employeeapp.model.Employee;
+import oop_project.model.Employee;
 
 import javax.swing.*;
 import java.awt.*;

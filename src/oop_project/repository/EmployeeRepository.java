@@ -1,6 +1,6 @@
 package com.motorph.employeeapp.repository;
 
-import com.motorph.employeeapp.model.Employee;
+import oop_project.model.Employee;
 import java.io.IOException;
 import java.util.List;
 

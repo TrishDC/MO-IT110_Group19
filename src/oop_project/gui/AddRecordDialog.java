@@ -1,5 +1,4 @@
 package com.motorph.employeeapp.gui;
-import com.motorph.employeeapp.model.Employee;
 import com.motorph.employeeapp.repository.EmployeeRepository;
 
 import javax.swing.*;
@@ -13,6 +12,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import oop_project.model.Employee;
 
 /**
  * Dialog to add a new Employee. Uses JSpinner for birthday
@@ -150,7 +150,7 @@ public class AddRecordDialog extends JDialog {
                 parseDecimal(clothingAllowanceField.getText().trim()),
                 parseDecimal(semiMonthlyRateField.getText().trim()),
                 parseDecimal(hourlyRateField.getText().trim())
-            );
+            ) {};
             // set the rest
             e.setAddress(         addressField.getText().trim());
             e.setPhone(           phoneField.getText().trim());

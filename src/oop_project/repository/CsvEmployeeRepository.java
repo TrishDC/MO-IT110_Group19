@@ -1,6 +1,6 @@
 package com.motorph.employeeapp.repository;
 
-import com.motorph.employeeapp.model.Employee;
+import oop_project.model.Employee;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
@@ -66,7 +66,11 @@ public List<Employee> loadAll() throws IOException {
             Employee e = new Employee(
               id, first, last, birth,
               basic, rice, phoneA, clothA, semi, hour
-            );
+            ) {
+                public String getirstName() {
+                    throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+                }
+            };
 
             // now set all the other text fields
             e.setAddress(           parts[4] );

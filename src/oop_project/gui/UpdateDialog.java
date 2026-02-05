@@ -1,6 +1,4 @@
 package com.motorph.employeeapp.gui;
-
-import com.motorph.employeeapp.model.Employee;
 import com.motorph.employeeapp.repository.EmployeeRepository;
 import com.toedter.calendar.JDateChooser;
 
@@ -11,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import oop_project.model.Employee;
 
 public class UpdateDialog extends JDialog {
     private final EmployeeRepository repo;
