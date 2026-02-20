@@ -1,5 +1,6 @@
 package com.motorph.employeeapp.gui;
 
+import oop_project.gui.LeaveManagementFrame;
 import com.motorph.employeeapp.model.Employee;
 import com.motorph.employeeapp.repository.CsvEmployeeRepository;
 import com.motorph.employeeapp.repository.EmployeeRepository;
@@ -114,8 +115,9 @@ public class EmployeeManagementFrame extends JFrame {
         JButton updateBtn = new JButton("Update Employee");
         JButton deleteBtn = new JButton("Delete Employee");
         JButton viewBtn   = new JButton("View Employee");
+        JButton leaveBtn = new JButton("Leave Management");
 
-        List<JButton> btnsList = List.of(addBtn, updateBtn, deleteBtn, viewBtn);
+        List<JButton> btnsList = List.of(addBtn, updateBtn, deleteBtn, viewBtn, leaveBtn);
         for (JButton b : btnsList) {
             b.setForeground(Color.WHITE);
             b.setFocusPainted(false);
@@ -126,6 +128,7 @@ public class EmployeeManagementFrame extends JFrame {
         updateBtn.setBackground(UPD_ORANGE);
         deleteBtn.setBackground(DEL_RED);
         viewBtn.setBackground(PRIMARY);
+        leaveBtn.setBackground(DARK_PRIMARY);
 
         // Disable until selection
         updateBtn.setEnabled(false);
@@ -209,6 +212,10 @@ public class EmployeeManagementFrame extends JFrame {
                 }
             }
         });
+        leaveBtn.addActionListener(e -> {
+            new LeaveManagementFrame().setVisible(true);
+        });
+
 
         // Layout side panel
         JPanel side = new JPanel();
@@ -219,6 +226,8 @@ public class EmployeeManagementFrame extends JFrame {
         side.add(updateBtn); side.add(Box.createVerticalStrut(8));
         side.add(deleteBtn); side.add(Box.createVerticalStrut(8));
         side.add(viewBtn);
+        side.add(Box.createVerticalStrut(8));
+        side.add(leaveBtn);
 
         getContentPane().setBackground(BG_WHITE);
         setLayout(new BorderLayout());
