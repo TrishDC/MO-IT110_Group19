@@ -1,6 +1,6 @@
-package com.motorph.employeeapp.gui;
-import com.motorph.employeeapp.model.Employee;
-import com.motorph.employeeapp.repository.EmployeeRepository;
+package oop_project.gui;
+import oop_project.model.Employee;
+import oop_project.repository.EmployeeRepository;
 
 import javax.swing.*;
 import java.awt.*;

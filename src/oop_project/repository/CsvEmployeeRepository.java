@@ -3,7 +3,6 @@ package com.motorph.employeeapp.repository;
 import com.motorph.employeeapp.model.Employee;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
-import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -81,7 +80,7 @@ public List<Employee> loadAll() throws IOException {
 
             employees.add(e);
         }
-    } catch (CsvValidationException ex) {
+    } catch (RuntimeException ex) {
         throw new IOException("Invalid CSV format", ex);
     }
     return employees;
