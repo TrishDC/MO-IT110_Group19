@@ -1,10 +1,21 @@
 package oop_project.gui;
 
+import com.motorph.employeeapp.model.Employee;
+import com.motorph.employeeapp.repository.CsvEmployeeRepository;
+import com.motorph.employeeapp.repository.EmployeeRepository;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
+import java.util.List;
 
 public class LoginService {
     private static final PasswordManager PASSWORD_MANAGER = new PasswordManager();
+    private static final DateTimeFormatter BIRTHDAY_FORMAT = DateTimeFormatter.ofPattern("M/d/yyyy");
 
     public static boolean hasAccounts() {
         try {
@@ -55,5 +66,59 @@ public class LoginService {
                 Arrays.fill(newPassword, '\0');
             }
         }
+    }
+
+    public static boolean registerEmployeeAccount(String employeeId, String birthDateText, char[] password) {
+        try {
+            if (employeeId == null || employeeId.trim().isEmpty() || birthDateText == null || birthDateText.trim().isEmpty()) {
+                return false;
+            }
+            if (password == null || password.length == 0) {
+                return false;
+            }
+
+            LocalDate birthDate;
+            try {
+                birthDate = LocalDate.parse(birthDateText.trim(), BIRTHDAY_FORMAT);
+            } catch (DateTimeParseException ex) {
+                return false;
+            }
+
+            EmployeeRepository employeeRepository = new CsvEmployeeRepository(resolveEmployeeCsvPath().toString());
+            List<Employee> employees = employeeRepository.loadAll();
+
+            String normalizedId = employeeId.trim();
+            for (Employee employee : employees) {
+                if (normalizedId.equals(employee.getId()) && birthDate.equals(employee.getBirthDate())) {
+                    PASSWORD_MANAGER.upsertAccount(normalizedId, password);
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Error registering employee account: " + e.getMessage());
+            return false;
+        } finally {
+            if (password != null) {
+                Arrays.fill(password, '\0');
+            }
+        }
+    }
+
+    private static Path resolveEmployeeCsvPath() {
+        String fileName = "MotorPH Employee Record.csv";
+        Path[] candidates = new Path[] {
+            Paths.get("data", fileName),
+            Paths.get("src", "data", fileName),
+            Paths.get(System.getProperty("user.dir"), "data", fileName),
+            Paths.get(System.getProperty("user.dir"), "src", "data", fileName)
+        };
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate.toAbsolutePath().normalize();
+            }
+        }
+        return candidates[1].toAbsolutePath().normalize();
     }
 } 

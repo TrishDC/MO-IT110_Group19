@@ -15,6 +15,7 @@ public class LoginDialog extends JDialog {
     private JButton btnLogin;
     private JButton btnCancel;
     private JButton btnChangePassword;
+    private JButton btnRegisterEmployee;
     private boolean succeeded;
 
     public LoginDialog(Frame parent) {
@@ -81,8 +82,15 @@ public class LoginDialog extends JDialog {
                 showChangePasswordDialog();
             }
         });
+        btnRegisterEmployee = new JButton("Register Employee");
+        btnRegisterEmployee.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                showEmployeeRegistrationDialog();
+            }
+        });
         JPanel bp = new JPanel();
         bp.add(btnLogin);
+        bp.add(btnRegisterEmployee);
         bp.add(btnChangePassword);
         bp.add(btnCancel);
 
@@ -155,6 +163,77 @@ public class LoginDialog extends JDialog {
             pfPassword.setText("");
         } finally {
             Arrays.fill(confirmPassword, '\0');
+        }
+    }
+
+    private void showEmployeeRegistrationDialog() {
+        JTextField employeeIdField = new JTextField(20);
+        JPasswordField passwordField = new JPasswordField(20);
+        JPasswordField confirmField = new JPasswordField(20);
+        JTextField birthDateField = new JTextField(20);
+
+        JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
+        form.add(new JLabel("Employee ID (will be your username)"));
+        form.add(employeeIdField);
+        form.add(new JLabel("Birth Date (M/d/yyyy)"));
+        form.add(birthDateField);
+        form.add(new JLabel("Password"));
+        form.add(passwordField);
+        form.add(new JLabel("Confirm Password"));
+        form.add(confirmField);
+
+        int option = JOptionPane.showConfirmDialog(
+            this,
+            form,
+            "Register Employee Account",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (option != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String employeeId = employeeIdField.getText() != null ? employeeIdField.getText().trim() : "";
+        String birthDateText = birthDateField.getText() != null ? birthDateField.getText().trim() : "";
+        char[] password = passwordField.getPassword();
+        char[] confirm = confirmField.getPassword();
+
+        try {
+            if (employeeId.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Employee ID is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (birthDateText.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Birth date is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (password.length == 0) {
+                JOptionPane.showMessageDialog(this, "Password is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!Arrays.equals(password, confirm)) {
+                JOptionPane.showMessageDialog(this, "Passwords do not match.", "Register Employee", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            boolean registered = LoginService.registerEmployeeAccount(employeeId, birthDateText, password);
+            if (!registered) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Unable to register account. Check Employee ID and birth date format (M/d/yyyy).",
+                    "Register Employee",
+                    JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            JOptionPane.showMessageDialog(this, "Employee account created. You can now log in.", "Register Employee", JOptionPane.INFORMATION_MESSAGE);
+            tfUsername.setText(employeeId);
+            pfPassword.setText("");
+        } finally {
+            Arrays.fill(password, '\0');
+            Arrays.fill(confirm, '\0');
         }
     }
 
