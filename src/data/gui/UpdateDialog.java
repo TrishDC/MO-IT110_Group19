@@ -1,9 +1,8 @@
 package gui;
 
-import model.Employee;
-import repository.EmployeeRepository;
-import com.toedter.calendar.JDateChooser;
 
+
+import com.toedter.calendar.JDateChooser;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -11,6 +10,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import model.Employee;
+import repository.EmployeeRepository;
 
 public class UpdateDialog extends JDialog {
     private final EmployeeRepository repo;

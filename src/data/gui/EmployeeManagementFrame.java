@@ -1,9 +1,5 @@
 package gui;
 
-import gui.LeaveManagementFrame;
-import model.Employee;
-import repository.CsvEmployeeRepository;
-import repository.EmployeeRepository;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
@@ -17,17 +13,25 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import model.Employee;
+import repository.CsvEmployeeRepository;
+import repository.EmployeeRepository;
 
 public class EmployeeManagementFrame extends JFrame {
     private final EmployeeRepository repo;
+    private final Path employeeCsvPath;
     private final JTable table;
     private final DefaultTableModel model;
 
-    public EmployeeManagementFrame(EmployeeRepository repo) {
+    public EmployeeManagementFrame(EmployeeRepository repo, Path employeeCsvPath) {
         super("Employee Management");
         this.repo = repo;
+        this.employeeCsvPath = employeeCsvPath;
 
         // Nimbus look & feel
         try {
@@ -44,7 +48,7 @@ public class EmployeeManagementFrame extends JFrame {
         Color UPD_ORANGE   = new Color(255,152,0);
 
         // Table & model
-        String[] cols = {"Employee #","Last Name","First Name","Phone","SSS #","PhilHealth #","TIN #","Pag-IBIG #"};
+        String[] cols = {"Employee #","Last Name","First Name","SSS #","PhilHealth #","TIN #","Pag-IBIG #"};
         model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -97,8 +101,8 @@ public class EmployeeManagementFrame extends JFrame {
                     setForeground(Color.DARK_GRAY);
                 }
 
-               
-               if (!sel && (col == 4 || col == 5 || col == 6 || col == 7) && v != null) {
+                // Plain-string for PhilHealth (col=4) & Pag-IBIG (col=6)
+                if (!sel && (col == 4 || col == 6) && v != null) {
                     try {
                         BigDecimal bd = new BigDecimal(v.toString());
                         setText(bd.toPlainString());
@@ -247,7 +251,7 @@ public class EmployeeManagementFrame extends JFrame {
             if (employees.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
                     "No employee records found. Please check if the CSV file exists at: " + 
-                    new java.io.File("data" + File.separator + "MotorPH Employee Record.csv").getAbsolutePath(),
+                    employeeCsvPath.toAbsolutePath(),
                     "No Data", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -255,7 +259,7 @@ public class EmployeeManagementFrame extends JFrame {
             for (Employee emp : employees) {
                 model.addRow(new Object[]{
                     emp.getId(), emp.getLastName(), emp.getFirstName(),
-                    emp.getPhone(),emp.getSssNumber(), emp.getPhilHealthNumber(),
+                    emp.getSssNumber(), emp.getPhilHealthNumber(),
                     emp.getTinNumber(), emp.getPagIbigNumber()
                 });
             }
@@ -263,7 +267,7 @@ public class EmployeeManagementFrame extends JFrame {
             JOptionPane.showMessageDialog(this,
                 "Load failed: " + e.getMessage() + "\n" +
                 "Please check if the CSV file exists at: " + 
-                new java.io.File("data" + File.separator + "MotorPH Employee Record.csv").getAbsolutePath(),
+                employeeCsvPath.toAbsolutePath(),
                 "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -277,99 +281,36 @@ public class EmployeeManagementFrame extends JFrame {
             }
 
             // If login successful, show the employee management frame
-            EmployeeRepository repo = new CsvEmployeeRepository(
-                "data" + File.separator + "MotorPH Employee Record.csv"
-            );
-            new EmployeeManagementFrame(repo).setVisible(true);
+            Path csvPath = resolveEmployeeCsvPath();
+            EmployeeRepository repo = new CsvEmployeeRepository(csvPath.toString());
+            new EmployeeManagementFrame(repo, csvPath).setVisible(true);
         });
+    }
+
+    private static Path resolveEmployeeCsvPath() {
+        String fileName = "MotorPH Employee Record.csv";
+        Path[] candidates = new Path[] {
+            Paths.get("data", fileName),
+            Paths.get("src", "data", fileName),
+            Paths.get(System.getProperty("user.dir"), "data", fileName),
+            Paths.get(System.getProperty("user.dir"), "src", "data", fileName)
+        };
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate.toAbsolutePath().normalize();
+            }
+        }
+        return candidates[1].toAbsolutePath().normalize();
     }
     
     private static boolean showLoginDialog() {
-        JDialog loginDialog = new JDialog((Frame) null, "MotorPH Employee Management - Login", true);
-        loginDialog.setSize(520, 250);
-        loginDialog.setLocationRelativeTo(null);
-        loginDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        loginDialog.setResizable(false);
-        
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        // Title
-        JLabel titleLabel = new JLabel("Employee Management System", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
-        
-        // Login form panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        
-        // Username field
-        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
-        JLabel usernameLabel = new JLabel("Username:");
-        usernameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        formPanel.add(usernameLabel, gbc);
-        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
-        JTextField usernameField = new JTextField(30);
-        usernameField.setFont(new Font("Arial", Font.PLAIN, 14));
-        usernameField.setPreferredSize(new Dimension(280, 35));
-        formPanel.add(usernameField, gbc);
-        
-        // Password field
-        gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST;
-        JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        formPanel.add(passwordLabel, gbc);
-        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
-        JPasswordField passwordField = new JPasswordField(30);
-        passwordField.setFont(new Font("Arial", Font.PLAIN, 14));
-        passwordField.setPreferredSize(new Dimension(280, 35));
-        formPanel.add(passwordField, gbc);
-        
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-        
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton loginBtn = new JButton("Login");
-        JButton cancelBtn = new JButton("Cancel");
-        
-        loginBtn.setPreferredSize(new Dimension(100, 35));
-        cancelBtn.setPreferredSize(new Dimension(100, 35));
-        loginBtn.setFont(new Font("Arial", Font.PLAIN, 14));
-        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        buttonPanel.add(loginBtn);
-        buttonPanel.add(cancelBtn);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        final boolean[] loginSuccess = {false};
-        
-        loginBtn.addActionListener(_ -> {
-            String username = usernameField.getText().trim();
-            String password = new String(passwordField.getPassword()).trim();
-            
-            if ("admin".equals(username) && "admin123".equals(password)) {
-                loginSuccess[0] = true;
-                loginDialog.dispose();
-                JOptionPane.showMessageDialog(null, "Login successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(loginDialog, "Invalid username or password!", "Login Failed", JOptionPane.ERROR_MESSAGE);
-                passwordField.setText("");
-                usernameField.requestFocus();
-            }
-        });
-        
-        cancelBtn.addActionListener(_ -> {
-            loginSuccess[0] = false;
-            loginDialog.dispose();
-        });
-        
-        // Enter key to login
-        loginDialog.getRootPane().setDefaultButton(loginBtn);
-        
-        loginDialog.add(mainPanel);
+        JFrame dummy = new JFrame();
+        dummy.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        LoginDialog loginDialog = new LoginDialog(dummy);
         loginDialog.setVisible(true);
-        
-        return loginSuccess[0];
+        boolean success = loginDialog.isSucceeded();
+        dummy.dispose();
+        return success;
     }
 }

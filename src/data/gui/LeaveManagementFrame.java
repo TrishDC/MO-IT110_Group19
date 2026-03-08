@@ -1,13 +1,15 @@
 package gui;
 
-import model.Leave;
-import repository.CsvLeaveRepository;
-import service.LeaveService;
 
+
+import gui.AddLeaveDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import model.Leave;
+import repository.CsvLeaveRepository;
+import service.LeaveService;
 
 public class LeaveManagementFrame extends JFrame {
 

@@ -1,10 +1,11 @@
 package gui;
 
-import model.Employee;
+
 
 import javax.swing.*;
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
+import model.Employee;
 
 public class ViewRecordDialog extends JDialog {
     public ViewRecordDialog(Frame owner, Employee employee) {

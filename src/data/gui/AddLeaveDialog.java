@@ -1,10 +1,11 @@
 package gui;
 
-import model.Leave;
-import service.LeaveService;
+
 
 import javax.swing.*;
 import java.awt.*;
+import model.Leave;
+import service.LeaveService;
 
 public class AddLeaveDialog extends JDialog {
 
@@ -60,7 +61,7 @@ public class AddLeaveDialog extends JDialog {
                 status = "Pending";
             }
 
-            service.add(new Leave(leaveId, empId, type, start, end, start));
+            service.add(new Leave(leaveId, empId, type, start, end, status));
             JOptionPane.showMessageDialog(this, "Leave added!");
             dispose();
         } catch (Exception ex) {

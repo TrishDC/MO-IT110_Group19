@@ -1,7 +1,5 @@
 package gui;
 
-import model.Employee;
-import pay.SalaryCalculator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import model.Employee;
+import pay.SalaryCalculator;
 
 public class PayslipSplitDialog extends JDialog {
     private final Employee emp;

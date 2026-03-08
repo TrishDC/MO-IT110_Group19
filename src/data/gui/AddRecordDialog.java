@@ -1,6 +1,5 @@
 package gui;
-import model.Employee;
-import repository.EmployeeRepository;
+
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,6 +12,8 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import model.Employee;
+import repository.EmployeeRepository;
 
 /**
  * Dialog to add a new Employee. Uses JSpinner for birthday
