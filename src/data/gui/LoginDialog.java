@@ -1,106 +1,344 @@
 package gui;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 public class LoginDialog extends JDialog {
 
+    private static final String TITLE_TEXT = "MotorPH Payroll System";
+
+    private static final Color FALLBACK_BG = new Color(230, 238, 247);
+    private static final Color CARD_BORDER = new Color(235, 235, 235);
+    private static final Color FIELD_BORDER = new Color(125, 125, 125);
+    private static final Color TEXT_COLOR = new Color(35, 35, 35);
+    private static final Color LINK_COLOR = new Color(120, 120, 120);
+    private static final Color LINK_HOVER_COLOR = new Color(70, 70, 70);
+
     private JTextField tfUsername;
     private JPasswordField pfPassword;
-    private JLabel lbUsername;
-    private JLabel lbPassword;
     private JButton btnLogin;
-    private JButton btnCancel;
-    private JButton btnChangePassword;
-    private JButton btnRegisterEmployee;
+    private JLabel lblForgotPassword;
+
     private boolean succeeded;
+    private Image backgroundImage;
+
+    private Font fontTitle;
+    private Font fontLabel;
+    private Font fontField;
+    private Font fontButton;
+    private Font fontLink;
+
+    private int cardWidth;
+    private int cardHeight;
+    private int titleWidth;
+    private int fieldWidth;
+    private int buttonWidth;
+    private int fieldHeight;
+    private int buttonHeight;
+
+    private int outerPadding;
+    private int cardPaddingVertical;
+    private int cardPaddingHorizontal;
+
+    private int topGap;
+    private int afterTitleGap;
+    private int labelToFieldGap;
+    private int sectionGap;
+    private int forgotGap;
+    private int beforeButtonGap;
+
+    public LoginDialog() {
+        this((Frame) null);
+    }
 
     public LoginDialog(Frame parent) {
         super(parent, "Login", true);
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints cs = new GridBagConstraints();
+        loadBackgroundImage();
+        calculateResponsiveMetrics();
+        initializeUI(parent);
+        ensureInitialAccount();
+    }
 
-        cs.fill = GridBagConstraints.HORIZONTAL;
+    private void loadBackgroundImage() {
+        java.net.URL imageUrl = getClass().getResource("/asset/LoginBackground.png");
+        if (imageUrl != null) {
+            backgroundImage = new ImageIcon(imageUrl).getImage();
+        } else {
+            System.out.println("Background image not found: /asset/LoginBackground.png");
+        }
+    }
 
-        lbUsername = new JLabel("Username: ");
-        cs.gridx = 0;
-        cs.gridy = 0;
-        cs.gridwidth = 1;
-        panel.add(lbUsername, cs);
+    private void calculateResponsiveMetrics() {
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        double scale = Math.min(screen.width / 1365.0, screen.height / 768.0);
 
-        tfUsername = new JTextField(20);
-        cs.gridx = 1;
-        cs.gridy = 0;
-        cs.gridwidth = 2;
-        panel.add(tfUsername, cs);
+        // Current design reduced to about 80% of the previous version
+        double panelScale = scale * 0.64;
 
-        lbPassword = new JLabel("Password: ");
-        cs.gridx = 0;
-        cs.gridy = 1;
-        cs.gridwidth = 1;
-        panel.add(lbPassword, cs);
+        fontTitle = new Font("Segoe UI", Font.BOLD, clamp((int) Math.round(34 * panelScale), 22, 34));
+        fontLabel = new Font("Segoe UI", Font.PLAIN, clamp((int) Math.round(17 * panelScale), 14, 17));
+        fontField = new Font("Segoe UI", Font.PLAIN, clamp((int) Math.round(18 * panelScale), 14, 18));
+        fontButton = new Font("Segoe UI", Font.PLAIN, clamp((int) Math.round(18 * panelScale), 14, 18));
+        fontLink = new Font("Segoe UI", Font.PLAIN, clamp((int) Math.round(15 * panelScale), 12, 15));
 
-        pfPassword = new JPasswordField(20);
-        cs.gridx = 1;
-        cs.gridy = 1;
-        cs.gridwidth = 2;
-        panel.add(pfPassword, cs);
+        cardWidth = clamp((int) Math.round(620 * panelScale), 360, 500);
+        cardHeight = clamp((int) Math.round(540 * panelScale), 320, 440);
 
-        panel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        cardPaddingHorizontal = clamp((int) Math.round(58 * panelScale), 24, 44);
+        cardPaddingVertical = clamp((int) Math.round(42 * panelScale), 20, 34);
+        outerPadding = clamp((int) Math.round(40 * panelScale), 16, 32);
 
-        btnLogin = new JButton("Login");
-        btnLogin.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (LoginService.validate(getUsername(), getPassword())) {
-                    succeeded = true;
-                    dispose();
+        titleWidth = measureTextWidth(TITLE_TEXT, fontTitle);
+        fieldWidth = (int) Math.round(titleWidth * 0.75);
+        buttonWidth = (int) Math.round(titleWidth * 0.50);
+
+        fieldHeight = clamp((int) Math.round(62 * panelScale), 38, 52);
+        buttonHeight = fieldHeight;
+
+        topGap = clamp((int) Math.round(8 * panelScale), 4, 8);
+        afterTitleGap = clamp((int) Math.round(42 * panelScale), 14, 28);
+        labelToFieldGap = clamp((int) Math.round(10 * panelScale), 5, 8);
+        sectionGap = clamp((int) Math.round(28 * panelScale), 10, 20);
+        forgotGap = clamp((int) Math.round(10 * panelScale), 5, 8);
+        beforeButtonGap = clamp((int) Math.round(38 * panelScale), 14, 24);
+
+        // Ensure the card stays large enough for the content
+        int minCardContentWidth = Math.max(titleWidth, fieldWidth) + cardPaddingHorizontal * 2;
+        cardWidth = Math.max(cardWidth, minCardContentWidth);
+
+        int estimatedContentHeight =
+                topGap
+                        + getTextHeight(fontTitle)
+                        + afterTitleGap
+                        + getTextHeight(fontLabel)
+                        + labelToFieldGap
+                        + fieldHeight
+                        + sectionGap
+                        + getTextHeight(fontLabel)
+                        + labelToFieldGap
+                        + fieldHeight
+                        + forgotGap
+                        + getTextHeight(fontLink)
+                        + beforeButtonGap
+                        + buttonHeight
+                        + cardPaddingVertical * 2
+                        + 24;
+
+        cardHeight = Math.max(cardHeight, estimatedContentHeight);
+    }
+
+    private void initializeUI(Frame parent) {
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
+        // Resizable decorated dialog. On some systems this shows minimize/maximize buttons.
+        setResizable(true);
+
+        JPanel backgroundPanel = createBackgroundPanel();
+        backgroundPanel.setBorder(new EmptyBorder(outerPadding, outerPadding, outerPadding, outerPadding));
+
+        JPanel cardPanel = createCardPanel();
+
+        backgroundPanel.add(cardPanel, new GridBagConstraints());
+        setContentPane(backgroundPanel);
+
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        setSize(screen);
+        setLocationRelativeTo(parent);
+
+        getRootPane().setDefaultButton(btnLogin);
+    }
+
+    private JPanel createBackgroundPanel() {
+        return new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                if (backgroundImage != null) {
+                    g2.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
                 } else {
-                    JOptionPane.showMessageDialog(LoginDialog.this,
-                            "Invalid username or password",
-                            "Login",
-                            JOptionPane.ERROR_MESSAGE);
-                    // reset username and password
-                    tfUsername.setText("");
-                    pfPassword.setText("");
-                    succeeded = false;
+                    g2.setColor(FALLBACK_BG);
+                    g2.fillRect(0, 0, getWidth(), getHeight());
                 }
+                g2.dispose();
             }
-        });
-        btnCancel = new JButton("Cancel");
-        btnCancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                succeeded = false;
-                dispose();
-            }
-        });
-        btnChangePassword = new JButton("Change Password");
-        btnChangePassword.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        };
+    }
+
+    private JPanel createCardPanel() {
+        JPanel cardPanel = new JPanel(new GridBagLayout());
+        cardPanel.setBackground(Color.WHITE);
+        cardPanel.setBorder(new CompoundBorder(
+                new LineBorder(CARD_BORDER, 1, true),
+                new EmptyBorder(cardPaddingVertical, cardPaddingHorizontal, cardPaddingVertical, cardPaddingHorizontal)
+        ));
+        cardPanel.setPreferredSize(new Dimension(cardWidth, cardHeight));
+
+        JLabel titleLabel = createLabel(TITLE_TEXT, fontTitle, Color.BLACK, titleWidth, SwingConstants.CENTER);
+        JLabel usernameLabel = createLabel("Username", fontLabel, TEXT_COLOR, fieldWidth, SwingConstants.LEFT);
+        JLabel passwordLabel = createLabel("Password", fontLabel, TEXT_COLOR, fieldWidth, SwingConstants.LEFT);
+
+        tfUsername = createStyledTextField();
+        pfPassword = createStyledPasswordField();
+
+        lblForgotPassword = new JLabel("<html><u>Forgot Password?</u></html>");
+        lblForgotPassword.setFont(fontLink);
+        lblForgotPassword.setForeground(LINK_COLOR);
+        lblForgotPassword.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        lblForgotPassword.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 showChangePasswordDialog();
             }
-        });
-        btnRegisterEmployee = new JButton("Register Employee");
-        btnRegisterEmployee.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                showEmployeeRegistrationDialog();
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                lblForgotPassword.setForeground(LINK_HOVER_COLOR);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                lblForgotPassword.setForeground(LINK_COLOR);
             }
         });
-        JPanel bp = new JPanel();
-        bp.add(btnLogin);
-        bp.add(btnRegisterEmployee);
-        bp.add(btnChangePassword);
-        bp.add(btnCancel);
 
-        getContentPane().add(panel, BorderLayout.CENTER);
-        getContentPane().add(bp, BorderLayout.PAGE_END);
+        JPanel forgotPanel = new JPanel(new BorderLayout());
+        forgotPanel.setOpaque(false);
+        forgotPanel.setPreferredSize(new Dimension(fieldWidth, getTextHeight(fontLink) + 4));
+        forgotPanel.add(lblForgotPassword, BorderLayout.EAST);
 
-        ensureInitialAccount();
+        btnLogin = new JButton("Login");
+        btnLogin.setFont(fontButton);
+        btnLogin.setForeground(Color.WHITE);
+        btnLogin.setBackground(Color.BLACK);
+        btnLogin.setFocusPainted(false);
+        btnLogin.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnLogin.setPreferredSize(new Dimension(buttonWidth, buttonHeight));
+        btnLogin.setBorder(new EmptyBorder(8, 16, 8, 16));
+        btnLogin.addActionListener(e -> attemptLogin());
 
-        pack();
-        setResizable(false);
-        setLocationRelativeTo(parent);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridy = 0;
+        gbc.insets = new Insets(topGap, 0, 0, 0);
+        cardPanel.add(titleLabel, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(afterTitleGap, 0, 0, 0);
+        cardPanel.add(usernameLabel, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(labelToFieldGap, 0, 0, 0);
+        cardPanel.add(tfUsername, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(sectionGap, 0, 0, 0);
+        cardPanel.add(passwordLabel, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(labelToFieldGap, 0, 0, 0);
+        cardPanel.add(pfPassword, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(forgotGap, 0, 0, 0);
+        cardPanel.add(forgotPanel, gbc);
+
+        gbc.gridy++;
+        gbc.insets = new Insets(beforeButtonGap, 0, 0, 0);
+        cardPanel.add(btnLogin, gbc);
+
+        return cardPanel;
+    }
+
+    private JLabel createLabel(String text, Font font, Color color, int width, int alignment) {
+        JLabel label = new JLabel(text);
+        label.setFont(font);
+        label.setForeground(color);
+        label.setHorizontalAlignment(alignment);
+        label.setPreferredSize(new Dimension(width, getTextHeight(font) + 4));
+        return label;
+    }
+
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setFont(fontField);
+        field.setBackground(Color.WHITE);
+        field.setForeground(Color.BLACK);
+        field.setCaretColor(Color.BLACK);
+        field.setPreferredSize(new Dimension(fieldWidth, fieldHeight));
+        field.setBorder(new CompoundBorder(
+                new LineBorder(FIELD_BORDER, 2, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        return field;
+    }
+
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setFont(fontField);
+        field.setBackground(Color.WHITE);
+        field.setForeground(Color.BLACK);
+        field.setCaretColor(Color.BLACK);
+        field.setPreferredSize(new Dimension(fieldWidth, fieldHeight));
+        field.setBorder(new CompoundBorder(
+                new LineBorder(FIELD_BORDER, 2, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        return field;
+    }
+
+    private int measureTextWidth(String text, Font font) {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        try {
+            g2.setFont(font);
+            return g2.getFontMetrics().stringWidth(text);
+        } finally {
+            g2.dispose();
+        }
+    }
+
+    private int getTextHeight(Font font) {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        try {
+            g2.setFont(font);
+            return g2.getFontMetrics().getHeight();
+        } finally {
+            g2.dispose();
+        }
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private void attemptLogin() {
+        if (LoginService.validate(getUsername(), getPassword())) {
+            succeeded = true;
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Invalid username or password.",
+                    "Login",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            tfUsername.setText("");
+            pfPassword.setText("");
+            succeeded = false;
+        }
     }
 
     private void showChangePasswordDialog() {
@@ -121,11 +359,11 @@ public class LoginDialog extends JDialog {
         form.add(confirmPasswordField);
 
         int option = JOptionPane.showConfirmDialog(
-            this,
-            form,
-            "Change Password",
-            JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE
+                this,
+                form,
+                "Change Password",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
         );
 
         if (option != JOptionPane.OK_OPTION) {
@@ -153,7 +391,12 @@ public class LoginDialog extends JDialog {
 
             boolean changed = LoginService.changePassword(username, oldPassword, newPassword);
             if (!changed) {
-                JOptionPane.showMessageDialog(this, "Unable to change password. Check your username and current password.", "Change Password", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Unable to change password. Check your username and current password.",
+                        "Change Password",
+                        JOptionPane.ERROR_MESSAGE
+                );
                 return;
             }
 
@@ -161,78 +404,9 @@ public class LoginDialog extends JDialog {
             tfUsername.setText(username);
             pfPassword.setText("");
         } finally {
+            Arrays.fill(oldPassword, '\0');
+            Arrays.fill(newPassword, '\0');
             Arrays.fill(confirmPassword, '\0');
-        }
-    }
-
-    private void showEmployeeRegistrationDialog() {
-        JTextField employeeIdField = new JTextField(20);
-        JPasswordField passwordField = new JPasswordField(20);
-        JPasswordField confirmField = new JPasswordField(20);
-        JTextField birthDateField = new JTextField(20);
-
-        JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
-        form.add(new JLabel("Employee ID (will be your username)"));
-        form.add(employeeIdField);
-        form.add(new JLabel("Birth Date (M/d/yyyy)"));
-        form.add(birthDateField);
-        form.add(new JLabel("Password"));
-        form.add(passwordField);
-        form.add(new JLabel("Confirm Password"));
-        form.add(confirmField);
-
-        int option = JOptionPane.showConfirmDialog(
-            this,
-            form,
-            "Register Employee Account",
-            JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (option != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        String employeeId = employeeIdField.getText() != null ? employeeIdField.getText().trim() : "";
-        String birthDateText = birthDateField.getText() != null ? birthDateField.getText().trim() : "";
-        char[] password = passwordField.getPassword();
-        char[] confirm = confirmField.getPassword();
-
-        try {
-            if (employeeId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Employee ID is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (birthDateText.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Birth date is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (password.length == 0) {
-                JOptionPane.showMessageDialog(this, "Password is required.", "Register Employee", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (!Arrays.equals(password, confirm)) {
-                JOptionPane.showMessageDialog(this, "Passwords do not match.", "Register Employee", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            boolean registered = LoginService.registerEmployeeAccount(employeeId, birthDateText, password);
-            if (!registered) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to register account. Check Employee ID and birth date format (M/d/yyyy).",
-                    "Register Employee",
-                    JOptionPane.ERROR_MESSAGE
-                );
-                return;
-            }
-
-            JOptionPane.showMessageDialog(this, "Employee account created. You can now log in.", "Register Employee", JOptionPane.INFORMATION_MESSAGE);
-            tfUsername.setText(employeeId);
-            pfPassword.setText("");
-        } finally {
-            Arrays.fill(password, '\0');
-            Arrays.fill(confirm, '\0');
         }
     }
 
@@ -255,11 +429,11 @@ public class LoginDialog extends JDialog {
         setupPanel.add(confirmField);
 
         int option = JOptionPane.showConfirmDialog(
-            this,
-            setupPanel,
-            "Initial Account Setup",
-            JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE
+                this,
+                setupPanel,
+                "Initial Account Setup",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
         );
 
         if (option != JOptionPane.OK_OPTION) {
@@ -290,7 +464,7 @@ public class LoginDialog extends JDialog {
                 return;
             }
 
-            JOptionPane.showMessageDialog(this, "Account created. Please login.", "Setup", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Account created. Please log in.", "Setup", JOptionPane.INFORMATION_MESSAGE);
             tfUsername.setText(username);
             pfPassword.setText("");
         } finally {
