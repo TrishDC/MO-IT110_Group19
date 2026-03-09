@@ -21,17 +21,23 @@ import java.util.List;
 import model.Employee;
 import repository.CsvEmployeeRepository;
 import repository.EmployeeRepository;
+import RBAC.Permission;
+import RBAC.Role;
 
 public class EmployeeManagementFrame extends JFrame {
     private final EmployeeRepository repo;
     private final Path employeeCsvPath;
     private final JTable table;
     private final DefaultTableModel model;
+    private String loggedInUsername;
+    private boolean canEditEmployees = false;
 
-    public EmployeeManagementFrame(EmployeeRepository repo, Path employeeCsvPath) {
+    public EmployeeManagementFrame(EmployeeRepository repo, Path employeeCsvPath, String loggedInUsername) {
         super("Employee Management");
+        this.loggedInUsername = loggedInUsername;
         this.repo = repo;
         this.employeeCsvPath = employeeCsvPath;
+        checkUserPermissions();
 
         // Nimbus look & feel
         try {
@@ -134,9 +140,19 @@ public class EmployeeManagementFrame extends JFrame {
         viewBtn.setBackground(PRIMARY);
         leaveBtn.setBackground(DARK_PRIMARY);
 
-        // Disable until selection
-        updateBtn.setEnabled(false);
-        deleteBtn.setEnabled(false);
+        // Check RBAC permissions and disable buttons if user cannot edit employees
+        if (!canEditEmployees) {
+            addBtn.setEnabled(false);
+            addBtn.setToolTipText("You don't have permission to add employees");
+            updateBtn.setEnabled(false);
+            updateBtn.setToolTipText("You don't have permission to edit employees");
+            deleteBtn.setEnabled(false);
+            deleteBtn.setToolTipText("You don't have permission to delete employees");
+        } else {
+            // Disable until selection
+            updateBtn.setEnabled(false);
+            deleteBtn.setEnabled(false);
+        }
         viewBtn.setEnabled(false);
 
         // Selection listener
@@ -144,8 +160,11 @@ public class EmployeeManagementFrame extends JFrame {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 boolean sel = table.getSelectedRow() >= 0;
-                updateBtn.setEnabled(sel);
-                deleteBtn.setEnabled(sel);
+                // Only enable update/delete if user has RBAC permission
+                if (canEditEmployees) {
+                    updateBtn.setEnabled(sel);
+                    deleteBtn.setEnabled(sel);
+                }
                 viewBtn.setEnabled(sel);
             }
         });
@@ -244,6 +263,34 @@ public class EmployeeManagementFrame extends JFrame {
         loadTable();
     }
 
+    private void checkUserPermissions() {
+        // Keep the initial admin account as full-access even if it is not in employee CSV.
+        if (loggedInUsername != null && "admin".equalsIgnoreCase(loggedInUsername.trim())) {
+            canEditEmployees = true;
+            return;
+        }
+
+        try {
+            List<Employee> employees = repo.loadAll();
+            for (Employee emp : employees) {
+                if (emp.getId().equals(loggedInUsername)) {
+                    Role role = emp.getRole();
+                    if (role != null) {
+                        canEditEmployees = role.hasPermission(Permission.EDIT_EMPLOYEE);
+                        System.out.println("User " + loggedInUsername + " has role: " + role.getName() + 
+                                         ", can edit: " + canEditEmployees);
+                    } else {
+                        System.out.println("User " + loggedInUsername + " has no role assigned");
+                    }
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error checking permissions: " + e.getMessage());
+            canEditEmployees = false;
+        }
+    }
+
     private void loadTable() {
         model.setRowCount(0);
         try {
@@ -275,15 +322,22 @@ public class EmployeeManagementFrame extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Show login dialog first
-            boolean loginSuccess = showLoginDialog();
-            if (!loginSuccess) {
+            JFrame dummy = new JFrame();
+            dummy.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            LoginDialog loginDialog = new LoginDialog(dummy);
+            loginDialog.setVisible(true);
+            boolean loginSuccess = loginDialog.isSucceeded();
+            String username = loginSuccess ? loginDialog.getUsername() : null;
+            dummy.dispose();
+            
+            if (!loginSuccess || username == null) {
                 System.exit(0);
             }
 
-            // If login successful, show the employee management frame
+            // If login successful, show the employee management frame with username
             Path csvPath = resolveEmployeeCsvPath();
             EmployeeRepository repo = new CsvEmployeeRepository(csvPath.toString());
-            new EmployeeManagementFrame(repo, csvPath).setVisible(true);
+            new EmployeeManagementFrame(repo, csvPath, username).setVisible(true);
         });
     }
 
@@ -304,13 +358,5 @@ public class EmployeeManagementFrame extends JFrame {
         return candidates[1].toAbsolutePath().normalize();
     }
     
-    private static boolean showLoginDialog() {
-        JFrame dummy = new JFrame();
-        dummy.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        LoginDialog loginDialog = new LoginDialog(dummy);
-        loginDialog.setVisible(true);
-        boolean success = loginDialog.isSucceeded();
-        dummy.dispose();
-        return success;
-    }
+
 }

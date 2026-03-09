@@ -44,12 +44,48 @@ public class LoginService {
     public static boolean validate(String username, String password) {
         char[] passwordChars = password != null ? password.toCharArray() : new char[0];
         try {
-            return PASSWORD_MANAGER.validate(username, passwordChars);
+            // First try normal validation with stored password
+            if (PASSWORD_MANAGER.validate(username, passwordChars)) {
+                return true;
+            }
+            
+            // If failed, try auto-generated password format: employeeId + FirstLetterOfFirstName
+            return validateWithAutoPassword(username, password);
         } catch (IOException e) {
             System.err.println("Error validating credentials: " + e.getMessage());
             return false;
         } finally {
             Arrays.fill(passwordChars, '\0');
+        }
+    }
+    
+    private static boolean validateWithAutoPassword(String employeeId, String providedPassword) {
+        try {
+            EmployeeRepository employeeRepository = new CsvEmployeeRepository(resolveEmployeeCsvPath().toString());
+            List<Employee> employees = employeeRepository.loadAll();
+            
+            for (Employee employee : employees) {
+                if (employeeId.equals(employee.getId())) {
+                    String firstName = employee.getFirstName();
+                    if (firstName != null && !firstName.isEmpty()) {
+                        String expectedPassword = employeeId + firstName.substring(0, 1).toUpperCase();
+                        if (expectedPassword.equals(providedPassword)) {
+                            // Auto-register this employee with the correct password for future logins
+                            char[] pwd = expectedPassword.toCharArray();
+                            try {
+                                PASSWORD_MANAGER.upsertAccount(employeeId, pwd);
+                                return true;
+                            } finally {
+                                Arrays.fill(pwd, '\0');
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            return false;
         }
     }
 
@@ -66,6 +102,15 @@ public class LoginService {
             if (newPassword != null) {
                 Arrays.fill(newPassword, '\0');
             }
+        }
+    }
+
+    public static boolean deleteAccount(String username) {
+        try {
+            return PASSWORD_MANAGER.removeAccount(username);
+        } catch (IOException e) {
+            System.err.println("Error deleting account: " + e.getMessage());
+            return false;
         }
     }
 

@@ -102,6 +102,21 @@ public class PasswordManager {
         return true;
     }
 
+    public synchronized boolean removeAccount(String username) throws IOException {
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+
+        Map<String, CredentialRecord> records = loadRecords();
+        CredentialRecord removed = records.remove(username.trim());
+        if (removed == null) {
+            return false;
+        }
+
+        saveRecords(records);
+        return true;
+    }
+
     private Map<String, CredentialRecord> loadRecords() throws IOException {
         ensureAppDir();
         if (!Files.exists(credentialsPath)) {
