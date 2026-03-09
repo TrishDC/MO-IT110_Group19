@@ -3,14 +3,20 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package RBAC;
-    import java.util.Set;
+
+import java.util.Collections;
+import java.util.Set;
+
 
 /**
  *
  * @author trisha
  */
+
 public class Role {
-    private String name;           private Set<Permission> permissions;
+
+    private final String name;
+    private final Set<Permission> permissions;
 
     public Role(String name, Set<Permission> permissions) {
         this.name = name;
@@ -18,11 +24,22 @@ public class Role {
     }
 
     public boolean hasPermission(Permission permission) {
+        if (permission == null) {
+            return false;
+        }
         return permissions.contains(permission);
     }
 
     public String getName() {
         return name;
     }
+
+    public Set<Permission> getPermissions() {
+        return Collections.unmodifiableSet(permissions);
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }
-    
