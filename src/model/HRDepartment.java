@@ -50,7 +50,7 @@ public String toString() {
     }
 
  
-    public boolean approveLeave(String employeeId, int days, String reason) {
+    public boolean RejectLeave(String employeeId, int days, String reason) {
 
         if (employeeId == null || employeeId.isEmpty()) {
             return false;
