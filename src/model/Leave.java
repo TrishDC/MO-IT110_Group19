@@ -20,6 +20,10 @@ public class Leave {
         this.status = (status == null || status.trim().isEmpty()) ? "Pending" : status;
     }
 
+    public Leave() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
     public int getLeaveId() {return leaveId;}
     public int getEmployeeId() {return employeeId;}
     public String getLeaveType() {return leaveType;}
