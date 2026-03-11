@@ -43,8 +43,4 @@ public class LeaveService {
         repo.add(leave);
     }
 
-    public void requestLeave(String text, String text0, String text1, String text2) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
 }
