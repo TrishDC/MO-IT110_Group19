@@ -18,7 +18,7 @@ public class AccountingDepartment extends Employee {
     }
         @Override
 public String toString() {
-    return "Sales Department "+getPosition()+ getFirstName() + " " + getLastName();
+    return "Accounting Department "+getPosition()+ getFirstName() + " " + getLastName();
 }
 
     @Override

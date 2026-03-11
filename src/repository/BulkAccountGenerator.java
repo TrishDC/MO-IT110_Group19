@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+
+// This is a bulk account generator wherein employee credentials are made:
 public class BulkAccountGenerator {
 
     public static void generateAccounts(CsvEmployeeRepository repo) throws IOException {

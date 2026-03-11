@@ -4,6 +4,8 @@ import RBAC.Role;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.List;
+import repository.EmployeeValidator;
 
 /**
  * Represents an employee and their compensation/details.
@@ -28,14 +30,6 @@ public abstract class Employee implements IEmployee {
     private String status = "";        // e.g. "Regular"
     private String position = "";
     private String supervisor = "";
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
     private Role role;
 
     // salary fields
@@ -47,7 +41,7 @@ public abstract class Employee implements IEmployee {
     private BigDecimal hourlyRate;
 
     /**
-     * Primary constructor (used by repository for allowances-only).
+     * Primary constructor.
      *
      * @param id
      * @param firstName
@@ -84,44 +78,105 @@ public abstract class Employee implements IEmployee {
         this.hourlyRate = Objects.requireNonNull(hourlyRate, "Hourly rate must not be null");
     }
 
-    /**
-     * Convenience for when only personal info is known.
-     *
-     * @param id
-     * @param firstName
-     * @param lastName
-     * @param birthDate
-     */
-    public Employee(
-            String id,
-            String firstName,
-            String lastName,
-            LocalDate birthDate
-    ) {
+    public Employee(String id, String firstName, String lastName, LocalDate birthDate) {
         this(id, firstName, lastName, birthDate,
                 BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
-    // --- ID & Name & Date ---
+    public String validate(List<Employee> existingEmployees) {
+        return EmployeeValidator.validateAll(this, existingEmployees);
+    }
+
+    // Getters
     public String getId() {
         return id;
     }
-
+    
     public String getFirstName() {
         return firstName;
     }
+    
+        public String getLastName() {
+        return lastName;
+    }
+            public LocalDate getBirthDate() {
+        return birthDate;
+    }
+    
+    public String getAddress() {
+        return address;
+    }
+        
+    public String getPhone() {
+        return Phone;
+    }
+    
+    public String getSssNumber() {
+        return SssNumber;
+    }
+    
+    public String getPhilHealthNumber() {
+        return PhilHealthNumber;
+    }
+    
+    
+    public String getPagIbigNumber() {
+        return PagIbigNumber;
+    }
+    
+    public String getTinNumber() {
+        return TinNumber;
+    }
+        
+    public Role getRole() {
+        return role;
+    }
+    
+     public String getStatus() {
+        return status;
+    }
+    public String getPosition() {
+        return position;
+    }
+     
+    public String getSupervisor() {
+        return supervisor;
+    }
+    
+    public BigDecimal getBasicSalary() {
+        return basicSalary;
+    }
+    public BigDecimal getRiceSubsidy() {
+        return riceSubsidy;
+    }
+    public BigDecimal getPhoneAllowance() {
+        return phoneAllowance;
+    }   
+    
+    public BigDecimal getClothingAllowance() {
+        return clothingAllowance;
+    }
+    public BigDecimal getGrossSemiMonthlyRate() {
+        return grossSemiMonthlyRate;
+    }
+    
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+    
+   public String getEmployeeType() {
+        return "Employee";
+    }
 
+   
+   ///setters
     public void setFirstName(String firstName) {
         if (firstName == null || firstName.isBlank()) {
             throw new IllegalArgumentException("First name cannot be empty");
         }
         this.firstName = firstName.trim();
-    }
-
-    public String getLastName() {
-        return lastName;
     }
 
     public void setLastName(String lastName) {
@@ -131,198 +186,134 @@ public abstract class Employee implements IEmployee {
         this.lastName = lastName.trim();
     }
 
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
+
 
     public void setBirthDate(LocalDate birthDate) {
         this.birthDate = Objects.requireNonNull(birthDate, "Birth date must not be null");
     }
 
-    // --- Contact & IDs ---
-    public String getAddress() {
-        return address;
-    }
 
     public void setAddress(String address) {
         this.address = address == null ? "" : address.trim();
     }
 
-    public String getPhone() {
-        return Phone;
-    }
+
 
     public void setPhone(String Phone) {
-        if (Phone == null) {
-            throw new IllegalArgumentException("Phone cannot be null");
-        }
-        Phone = Phone.trim();
-        if (Phone.matches("\\d{3}-\\d{3}-\\d{3}")) {
-            this.Phone = Phone;
-        } else {
-            throw new IllegalArgumentException("Invalid phone number: " + Phone);
-        }
+        this.Phone = Phone == null ? "" : Phone.trim();
     }
-
-    public String getSssNumber() {
-        return SssNumber;
-    }
+  
+ 
 
     public void setSssNumber(String sssNumber) {
-
-        SssNumber = sssNumber.trim();
-        if (SssNumber.matches("\\d{2}-\\d{7}-\\d")) {
-            this.SssNumber = sssNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid SSS number: " + SssNumber);
-        }
+        this.SssNumber = sssNumber == null ? "" : sssNumber.trim();
     }
 
-    public String getPhilHealthNumber() {
-        return PhilHealthNumber;
+
+
+    public void setPhilHealthNumber(String philHealthNumber) {
+        this.PhilHealthNumber = philHealthNumber == null ? "" : philHealthNumber.trim();
     }
 
-    public void setPhilHealthNumber(String PhilHealthNumber) {
-        this.PhilHealthNumber = PhilHealthNumber;
-        PhilHealthNumber = PhilHealthNumber.trim();
-        PhilHealthNumber = PhilHealthNumber.trim();
-        if (PhilHealthNumber.matches("\\d{12}")) {
-            this.PhilHealthNumber = PhilHealthNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid PhilHealthNumber: " + PhilHealthNumber);
-        }
+  
+
+    public void setTinNumber(String tinNumber) {
+        this.TinNumber = tinNumber == null ? "" : tinNumber.trim();
     }
 
-    public String getTinNumber() {
-        return TinNumber;
+  
+
+    public void setPagIbigNumber(String pagIbigNumber) {
+        this.PagIbigNumber = pagIbigNumber == null ? "" : pagIbigNumber.trim();
     }
 
-    public void setTinNumber(String TinNumber) {
-        this.TinNumber = TinNumber;
-        TinNumber = TinNumber.trim();
-        if (TinNumber.matches("\\d{3}-\\d{3}-\\d{3}-\\d{1,4}")) {
-            this.TinNumber = TinNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid TIN number: " + TinNumber);
-        }
+ 
 
+    public void setRole(Role role) {
+        this.role = role;
     }
 
-    public String getPagIbigNumber() {
-        return PagIbigNumber;
-    }
 
-    public void setPagIbigNumber(String PagIbigNumber) {
-        this.PagIbigNumber = PagIbigNumber;
-        PagIbigNumber = PagIbigNumber.trim();
-        if (PagIbigNumber.matches("\\d{12}")) {
-            this.PagIbigNumber = PagIbigNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid PagIbigNumber: " + PagIbigNumber);
-        }
-    }
-
-    // --- Employment info ---
-    public String getStatus() {
-        return status;
-    }
 
     public void setStatus(String status) {
         this.status = status == null ? "" : status.trim();
     }
 
-    public String getPosition() {
-        return position;
-    }
 
     public void setPosition(String position) {
         this.position = position == null ? "" : position.trim();
     }
 
-    public String getSupervisor() {
-        return supervisor;
-    }
 
     public void setSupervisor(String supervisor) {
         this.supervisor = supervisor == null ? "" : supervisor.trim();
     }
 
-    // --- Salary fields ---
-    public BigDecimal getBasicSalary() {
-        return basicSalary;
-    }
+    
 
+    
     public void setBasicSalary(BigDecimal basicSalary) {
         this.basicSalary = Objects.requireNonNull(basicSalary, "Basic salary must not be null");
     }
 
-    public BigDecimal getRiceSubsidy() {
-        return riceSubsidy;
-    }
+  
 
     public void setRiceSubsidy(BigDecimal riceSubsidy) {
         this.riceSubsidy = Objects.requireNonNull(riceSubsidy, "Rice subsidy must not be null");
     }
 
-    public BigDecimal getPhoneAllowance() {
-        return phoneAllowance;
-    }
+  
 
     public void setPhoneAllowance(BigDecimal phoneAllowance) {
         this.phoneAllowance = Objects.requireNonNull(phoneAllowance, "Phone allowance must not be null");
     }
 
-    public BigDecimal getClothingAllowance() {
-        return clothingAllowance;
-    }
+
 
     public void setClothingAllowance(BigDecimal clothingAllowance) {
         this.clothingAllowance = Objects.requireNonNull(clothingAllowance, "Clothing allowance must not be null");
     }
 
-    public BigDecimal getGrossSemiMonthlyRate() {
-        return grossSemiMonthlyRate;
-    }
+
 
     public void setGrossSemiMonthlyRate(BigDecimal rate) {
         this.grossSemiMonthlyRate = Objects.requireNonNull(rate, "Semi-monthly rate must not be null");
     }
 
-    public BigDecimal getHourlyRate() {
-        return hourlyRate;
-    }
+
 
     public void setHourlyRate(BigDecimal hourlyRate) {
         this.hourlyRate = Objects.requireNonNull(hourlyRate, "Hourly rate must not be null");
     }
 
+    
+    //abstract class 
     public abstract BigDecimal calculateSalary();
 
-    public String getEmployeeType() {
-        return "Employee";
-    }
 
+    
+    
+
+    
     @Override
     public String toString() {
-        return String.format(
-                "Employee[id=%s, name=%s %s, birthDate=%s]",
-                id, firstName, lastName, birthDate
-        );
+        return String.format("Employee[id=%s, name=%s %s, birthDate=%s]", id, firstName, lastName, birthDate);
     }
 
     @Override
     public boolean equals(Object o) {
-     if (this == o) {
-     return true;
-      }
-      if (!(o instanceof Employee)) {
-          return false;
-      }
-      return id.equals(((Employee) o).id);
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Employee)) {
+            return false;
+        }
+        return id.equals(((Employee) o).id);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(id);
+        return Objects.hash(id);
     }
+
 }
