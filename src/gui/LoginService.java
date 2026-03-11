@@ -1,5 +1,9 @@
 package gui;
 
+import model.Employee;
+import repository.CsvEmployeeRepository;
+import repository.EmployeeRepository;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,12 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
-import model.Employee;
-
-import repository.CsvEmployeeRepository;
-import repository.EmployeeRepository;
 
 public class LoginService {
+
     private static final PasswordManager PASSWORD_MANAGER = new PasswordManager();
     private static final DateTimeFormatter BIRTHDAY_FORMAT = DateTimeFormatter.ofPattern("M/d/yyyy");
 
@@ -42,9 +43,13 @@ public class LoginService {
     }
 
     public static boolean validate(String username, String password) {
+        String normalizedUsername = username != null ? username.trim() : "";
         char[] passwordChars = password != null ? password.toCharArray() : new char[0];
+
         try {
-            return PASSWORD_MANAGER.validate(username, passwordChars);
+            boolean result = PASSWORD_MANAGER.validate(normalizedUsername, passwordChars);
+            System.out.println("LOGIN DEBUG -> username: [" + normalizedUsername + "], result: " + result);
+            return result;
         } catch (IOException e) {
             System.err.println("Error validating credentials: " + e.getMessage());
             return false;
@@ -71,9 +76,11 @@ public class LoginService {
 
     public static boolean registerEmployeeAccount(String employeeId, String birthDateText, char[] password) {
         try {
-            if (employeeId == null || employeeId.trim().isEmpty() || birthDateText == null || birthDateText.trim().isEmpty()) {
+            if (employeeId == null || employeeId.trim().isEmpty() ||
+                birthDateText == null || birthDateText.trim().isEmpty()) {
                 return false;
             }
+
             if (password == null || password.length == 0) {
                 return false;
             }
@@ -95,6 +102,7 @@ public class LoginService {
                     return true;
                 }
             }
+
             return false;
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Error registering employee account: " + e.getMessage());
@@ -104,6 +112,51 @@ public class LoginService {
                 Arrays.fill(password, '\0');
             }
         }
+    }
+
+    public static Employee findEmployeeByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            EmployeeRepository employeeRepository = new CsvEmployeeRepository(resolveEmployeeCsvPath().toString());
+            List<Employee> employees = employeeRepository.loadAll();
+            String normalizedUsername = username.trim();
+
+            for (Employee employee : employees) {
+                if (normalizedUsername.equalsIgnoreCase(employee.getId())) {
+                    return employee;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading employee record: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public static String getEmployeeDisplayName(String username) {
+        Employee employee = findEmployeeByUsername(username);
+        if (employee == null) {
+            return username != null ? username.trim() : "Unknown User";
+        }
+
+        String firstName = employee.getFirstName() != null ? employee.getFirstName().trim() : "";
+        String lastName = employee.getLastName() != null ? employee.getLastName().trim() : "";
+        String fullName = (firstName + " " + lastName).trim();
+
+        return fullName.isEmpty() ? employee.getId() : fullName;
+    }
+
+    public static String getEmployeePosition(String username) {
+        Employee employee = findEmployeeByUsername(username);
+        if (employee == null) {
+            return "Employee";
+        }
+
+        String position = employee.getPosition();
+        return (position == null || position.trim().isEmpty()) ? "Employee" : position.trim();
     }
 
     private static Path resolveEmployeeCsvPath() {
@@ -120,6 +173,7 @@ public class LoginService {
                 return candidate.toAbsolutePath().normalize();
             }
         }
+
         return candidates[1].toAbsolutePath().normalize();
     }
-} 
+}

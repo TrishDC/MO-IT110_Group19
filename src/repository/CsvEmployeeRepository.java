@@ -36,39 +36,35 @@ public class CsvEmployeeRepository implements EmployeeRepository {
     public List<Employee> loadAll() throws IOException {
 
         List<Employee> employees = new ArrayList<>();
-         Map<String, Role> roles = RBACSetup.setupRoles();
-         
+        Map<String, Role> roles = RBACSetup.setupRoles();
 
         try (CSVReader csv = new CSVReader(
                 new FileReader(csvPath.toFile(), StandardCharsets.UTF_8))) {
 
-            // Skip header
-            csv.readNext();
+            csv.readNext(); // Skip header
 
             String[] parts;
 
             while ((parts = csv.readNext()) != null) {
 
-                // Skip blank or incomplete rows
                 if (parts.length < 20) {
                     continue;
                 }
 
-                String id = parts[0];
-                String last = parts[1];
-                String first = parts[2];
+                String id = parts[0].trim();
+                String last = parts[1].trim();
+                String first = parts[2].trim();
                 LocalDate birth = parseDateOrNow(parts[3]);
 
-                BigDecimal basic = parseDecimalOrZero(parts[13]);
-                BigDecimal rice = parseDecimalOrZero(parts[14]);
-                BigDecimal phoneA = parseDecimalOrZero(parts[15]);
-                BigDecimal clothA = parseDecimalOrZero(parts[16]);
-                BigDecimal semi = parseDecimalOrZero(parts[17]);
-                BigDecimal hour = parseDecimalOrZero(parts[18]);
-                String department = parts[10];
-            
-                 Role role = roles.get(department);
+                BigDecimal basic = parseDecimalOrZero(cleanNumber(parts[13]));
+                BigDecimal rice = parseDecimalOrZero(cleanNumber(parts[14]));
+                BigDecimal phoneA = parseDecimalOrZero(cleanNumber(parts[15]));
+                BigDecimal clothA = parseDecimalOrZero(cleanNumber(parts[16]));
+                BigDecimal semi = parseDecimalOrZero(cleanNumber(parts[17]));
+                BigDecimal hour = parseDecimalOrZero(cleanNumber(parts[18]));
 
+                String roleName = parts[19] == null ? "" : parts[19].trim().toUpperCase();
+                Role role = roles.get(roleName);
 
                 Employee e = new Employee(
                         id,
@@ -88,19 +84,17 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                     }
                 };
 
-                // Set other fields
                 e.setAddress(parts[4]);
                 e.setPhone(fixLongNumber(parts[5]));
-
                 e.setSssNumber(fixLongNumber(parts[6]));
                 e.setPhilHealthNumber(fixLongNumber(parts[7]));
                 e.setTinNumber(fixLongNumber(parts[8]));
                 e.setPagIbigNumber(fixLongNumber(parts[9]));
-                e.setRole(role);
                 e.setStatus(parts[10]);
                 e.setPosition(parts[11]);
                 e.setSupervisor(parts[12]);
                 e.setRole(role);
+
                 employees.add(e);
             }
 
@@ -211,6 +205,13 @@ public class CsvEmployeeRepository implements EmployeeRepository {
         
 
         return value;
+    }
+    
+    private String cleanNumber(String value) {
+        if (value == null) {
+            return "0";
+        }
+        return value.replace(",", "").trim();
     }
 }
     

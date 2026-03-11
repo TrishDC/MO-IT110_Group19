@@ -10,6 +10,10 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
+import service.AuthenticationService;
+import service.SessionManager;
+import model.Employee;
+
 public class LoginDialog extends JDialog {
 
     private static final String TITLE_TEXT = "MotorPH Payroll System";
@@ -54,6 +58,12 @@ public class LoginDialog extends JDialog {
     private int forgotGap;
     private int beforeButtonGap;
 
+    // Added fields for logged-in user info
+    private String loggedInName = "Name";
+    private String loggedInPosition = "Position";
+    
+    private Employee loggedInEmployee;
+
     public LoginDialog() {
         this((Frame) null);
     }
@@ -64,6 +74,18 @@ public class LoginDialog extends JDialog {
         calculateResponsiveMetrics();
         initializeUI(parent);
         ensureInitialAccount();
+    }
+
+    public String getLoggedInName() {
+        return loggedInName;
+    }
+
+    public String getLoggedInPosition() {
+        return loggedInPosition;
+    }
+    
+    public Employee getLoggedInEmployee() {
+        return loggedInEmployee;
     }
 
     private void loadBackgroundImage() {
@@ -79,7 +101,6 @@ public class LoginDialog extends JDialog {
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         double scale = Math.min(screen.width / 1365.0, screen.height / 768.0);
 
-        // Current design reduced to about 80% of the previous version
         double panelScale = scale * 0.64;
 
         fontTitle = new Font("Segoe UI", Font.BOLD, clamp((int) Math.round(34 * panelScale), 22, 34));
@@ -109,7 +130,6 @@ public class LoginDialog extends JDialog {
         forgotGap = clamp((int) Math.round(10 * panelScale), 5, 8);
         beforeButtonGap = clamp((int) Math.round(38 * panelScale), 14, 24);
 
-        // Ensure the card stays large enough for the content
         int minCardContentWidth = Math.max(titleWidth, fieldWidth) + cardPaddingHorizontal * 2;
         cardWidth = Math.max(cardWidth, minCardContentWidth);
 
@@ -136,8 +156,6 @@ public class LoginDialog extends JDialog {
 
     private void initializeUI(Frame parent) {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-
-        // Resizable decorated dialog. On some systems this shows minimize/maximize buttons.
         setResizable(true);
 
         JPanel backgroundPanel = createBackgroundPanel();
@@ -325,19 +343,60 @@ public class LoginDialog extends JDialog {
     }
 
     private void attemptLogin() {
-        if (LoginService.validate(getUsername(), getPassword())) {
-            succeeded = true;
-            dispose();
-        } else {
+
+        String username = getUsername();
+        String password = getPassword();
+
+        try {
+
+            // Create authentication service
+            repository.CsvEmployeeRepository repo =
+                    new repository.CsvEmployeeRepository("data/MotorPH Employee Record.csv");
+
+            service.AuthenticationService authService =
+                    new service.AuthenticationService(repo);
+
+            // Attempt login
+            Employee employee = authService.login(username, password);
+
+            if (employee != null) {
+
+                succeeded = true;
+
+                loggedInEmployee = employee;
+                loggedInName = employee.getFirstName() + " " + employee.getLastName();
+                loggedInPosition = employee.getPosition();
+
+                // Store user in session
+                service.SessionManager.setCurrentUser(employee);
+
+                dispose();
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Invalid username or password.",
+                        "Login",
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+                tfUsername.setText("");
+                pfPassword.setText("");
+                succeeded = false;
+                loggedInEmployee = null;
+            }
+
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
+
             JOptionPane.showMessageDialog(
                     this,
-                    "Invalid username or password.",
-                    "Login",
+                    "Login failed due to a system error.",
+                    "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-            tfUsername.setText("");
-            pfPassword.setText("");
-            succeeded = false;
         }
     }
 

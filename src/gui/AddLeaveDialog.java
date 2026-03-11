@@ -1,7 +1,5 @@
 package gui;
 
-
-
 import javax.swing.*;
 import java.awt.*;
 import model.Leave;

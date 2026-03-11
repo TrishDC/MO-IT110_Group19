@@ -1,7 +1,6 @@
 package gui;
 
 
-
 import gui.AddLeaveDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
