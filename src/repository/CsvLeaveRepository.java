@@ -8,20 +8,15 @@ import java.util.List;
 
 public class CsvLeaveRepository implements LeaveRepository {
 
-    private final String filePath;
+    private static final String FILE_PATH = "data/leaves.csv";
 
     public CsvLeaveRepository() {
-        this("data/leaves.csv");
-    }
-
-    public CsvLeaveRepository(String filePath) {
-        this.filePath = filePath;
         ensureFileExists();
     }
 
     private void ensureFileExists() {
         try {
-            File file = new File(filePath);
+            File file = new File(FILE_PATH);
             File parent = file.getParentFile();
 
             if (parent != null && !parent.exists()) {
@@ -30,12 +25,9 @@ public class CsvLeaveRepository implements LeaveRepository {
 
             if (!file.exists()) {
                 file.createNewFile();
-                try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-                    pw.println("leaveId,employeeId,leaveType,startDate,endDate,reason,notes,status");
-                }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to initialize leave CSV file.", e);
+            throw new RuntimeException("Failed to prepare leave CSV file.", e);
         }
     }
 
@@ -43,41 +35,31 @@ public class CsvLeaveRepository implements LeaveRepository {
     public List<Leave> findAll() {
         List<Leave> leaves = new ArrayList<>();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
             String line;
-            boolean first = true;
 
             while ((line = br.readLine()) != null) {
-                if (first) {
-                    first = false;
-                    if (line.toLowerCase().startsWith("leaveid,")) {
-                        continue;
-                    }
-                }
-
-                if (line.trim().isEmpty()) {
-                    continue;
-                }
+                if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split(",", -1);
-                if (parts.length < 8) {
-                    continue;
-                }
+
+                // Expected format:
+                // leaveId,employeeId,leaveType,startDate,endDate,notes,status
+                if (parts.length < 7) continue;
 
                 Leave leave = new Leave();
-                leave.setLeaveId(parseInt(parts[0]));
-                leave.setEmployeeId(parts[1]);
-                leave.setLeaveType(parts[2]);
-                leave.setStartDate(parts[3]);
-                leave.setEndDate(parts[4]);
-                leave.setReason("");
-                leave.setNotes(parts[6]);
-                leave.setStatus(parts[7]);
+                leave.setLeaveId(parseIntSafe(parts[0]));
+                leave.setEmployeeId(safe(parts[1]));
+                leave.setLeaveType(safe(parts[2]));
+                leave.setStartDate(safe(parts[3]));
+                leave.setEndDate(safe(parts[4]));
+                leave.setNotes(safe(parts[5]));
+                leave.setStatus(safe(parts[6]));
 
                 leaves.add(leave);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read leave records.", e);
+            throw new RuntimeException("Failed to read leaves from CSV.", e);
         }
 
         return leaves;
@@ -86,91 +68,117 @@ public class CsvLeaveRepository implements LeaveRepository {
     @Override
     public List<Leave> findByEmployeeId(String employeeId) {
         List<Leave> result = new ArrayList<>();
+
         for (Leave leave : findAll()) {
-            if (safe(leave.getEmployeeId()).equals(safe(employeeId))) {
+            if (leave.getEmployeeId() != null &&
+                leave.getEmployeeId().equalsIgnoreCase(employeeId)) {
                 result.add(leave);
             }
         }
+
+        return result;
+    }
+
+    @Override
+    public List<Leave> findByStatus(String status) {
+        List<Leave> result = new ArrayList<>();
+
+        for (Leave leave : findAll()) {
+            if (leave.getStatus() != null &&
+                leave.getStatus().equalsIgnoreCase(status)) {
+                result.add(leave);
+            }
+        }
+
         return result;
     }
 
     @Override
     public void add(Leave leave) {
         List<Leave> leaves = findAll();
-        leave.setLeaveId(generateNextId(leaves));
         leaves.add(leave);
-        saveAll(leaves);
+        writeAll(leaves);
     }
 
     @Override
-    public void update(Leave leave) {
+    public void update(Leave updatedLeave) {
         List<Leave> leaves = findAll();
 
         for (int i = 0; i < leaves.size(); i++) {
-            if (leaves.get(i).getLeaveId() == leave.getLeaveId()) {
-                leaves.set(i, leave);
-                saveAll(leaves);
+            if (leaves.get(i).getLeaveId() == updatedLeave.getLeaveId()) {
+                leaves.set(i, updatedLeave);
+                writeAll(leaves);
                 return;
             }
         }
 
-        throw new IllegalArgumentException("Leave record not found.");
+        throw new IllegalArgumentException("Leave ID " + updatedLeave.getLeaveId() + " not found.");
     }
 
     @Override
     public void delete(int leaveId) {
         List<Leave> leaves = findAll();
-        leaves.removeIf(l -> l.getLeaveId() == leaveId);
-        saveAll(leaves);
+        leaves.removeIf(leave -> leave.getLeaveId() == leaveId);
+        writeAll(leaves);
     }
 
-    private void saveAll(List<Leave> leaves) {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(filePath))) {
-            pw.println("leaveId,employeeId,leaveType,startDate,endDate,reason,notes,status");
-
-            for (Leave leave : leaves) {
-                pw.println(
-                        leave.getLeaveId() + "," +
-                        esc(leave.getEmployeeId()) + "," +
-                        esc(leave.getLeaveType()) + "," +
-                        esc(leave.getStartDate()) + "," +
-                        esc(leave.getEndDate()) + "," +
-                        esc(leave.getReason()) + "," +
-                        esc(leave.getNotes()) + "," +
-                        esc(leave.getStatus())
-                );
+    @Override
+    public Leave findById(int leaveId) {
+        for (Leave leave : findAll()) {
+            if (leave.getLeaveId() == leaveId) {
+                return leave;
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save leave records.", e);
         }
+        return null;
     }
 
-    private int generateNextId(List<Leave> leaves) {
+    @Override
+    public int getNextLeaveId() {
         int max = 0;
-        for (Leave leave : leaves) {
+
+        for (Leave leave : findAll()) {
             if (leave.getLeaveId() > max) {
                 max = leave.getLeaveId();
             }
         }
+
         return max + 1;
     }
 
-    private int parseInt(String value) {
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (Exception e) {
-            return 0;
+    private void writeAll(List<Leave> leaves) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_PATH))) {
+            for (Leave leave : leaves) {
+                pw.println(toCsvLine(leave));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write leaves to CSV.", e);
         }
     }
 
-    private String esc(String value) {
-        if (value == null) {
-            return "";
-        }
+    private String toCsvLine(Leave leave) {
+        return escape(String.valueOf(leave.getLeaveId())) + "," +
+               escape(leave.getEmployeeId()) + "," +
+               escape(leave.getLeaveType()) + "," +
+               escape(leave.getStartDate()) + "," +
+               escape(leave.getEndDate()) + "," +
+               escape(leave.getNotes()) + "," +
+               escape(leave.getStatus());
+    }
+
+    private String escape(String value) {
+        if (value == null) return "";
         return value.replace(",", " ");
     }
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private int parseIntSafe(String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

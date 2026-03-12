@@ -1,22 +1,22 @@
 package gui;
 
 import model.Leave;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class LeaveFormPanel extends JPanel {
-
-    private static final String DATE_PLACEHOLDER = "yyyy-MM-dd";
 
     private final JLabel lblBack = new JLabel("<html><u>Back</u></html>");
     private final JButton btnSubmit = new JButton("Submit");
 
-    private final JTextField txtStartDate = new JTextField();
-    private final JTextField txtEndDate = new JTextField();
+    private final JDateChooser dcStartDate = new JDateChooser();
+    private final JDateChooser dcEndDate = new JDateChooser();
+
     private final JComboBox<String> cmbLeaveType = new JComboBox<>(
             new String[]{"Vacation Leave", "Sick Leave", "Emergency Leave", "Personal Leave", "Other"}
     );
@@ -24,6 +24,8 @@ public class LeaveFormPanel extends JPanel {
     private final JTextField txtStatus = new JTextField();
 
     private java.awt.event.ActionListener backListener;
+
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
     public LeaveFormPanel() {
         setLayout(new BorderLayout());
@@ -40,8 +42,6 @@ public class LeaveFormPanel extends JPanel {
 
         styleComponents();
         wireEvents();
-        installDatePlaceholder(txtStartDate);
-        installDatePlaceholder(txtEndDate);
 
         txtStatus.setEditable(false);
         txtStatus.setText("Pending");
@@ -106,9 +106,9 @@ public class LeaveFormPanel extends JPanel {
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        left.add(createFieldBlock("Start Date", txtStartDate));
+        left.add(createFieldBlock("Start Date", dcStartDate));
         left.add(Box.createVerticalStrut(22));
-        left.add(createFieldBlock("End Date", txtEndDate));
+        left.add(createFieldBlock("End Date", dcEndDate));
 
         return left;
     }
@@ -184,9 +184,8 @@ public class LeaveFormPanel extends JPanel {
         Color borderColor = new Color(115, 115, 115);
         Dimension fieldSize = new Dimension(100, 54);
 
-        styleTextField(txtStartDate, fieldFont, borderColor, fieldSize);
-        styleTextField(txtEndDate, fieldFont, borderColor, fieldSize);
-        styleTextField(txtStatus, fieldFont, borderColor, fieldSize);
+        styleDateChooser(dcStartDate, fieldFont, borderColor, fieldSize);
+        styleDateChooser(dcEndDate, fieldFont, borderColor, fieldSize);
 
         cmbLeaveType.setFont(fieldFont);
         cmbLeaveType.setPreferredSize(fieldSize);
@@ -196,9 +195,16 @@ public class LeaveFormPanel extends JPanel {
         cmbLeaveType.setOpaque(true);
         cmbLeaveType.setBorder(BorderFactory.createLineBorder(borderColor, 1));
 
+        txtStatus.setFont(fieldFont);
+        txtStatus.setPreferredSize(fieldSize);
+        txtStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE, fieldSize.height));
         txtStatus.setBackground(Color.WHITE);
-        txtStatus.setDisabledTextColor(new Color(25, 25, 25));
+        txtStatus.setForeground(new Color(25, 25, 25));
         txtStatus.setCaretColor(new Color(25, 25, 25));
+        txtStatus.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                new EmptyBorder(0, 14, 0, 14)
+        ));
 
         btnSubmit.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnSubmit.setForeground(Color.WHITE);
@@ -209,40 +215,20 @@ public class LeaveFormPanel extends JPanel {
         btnSubmit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    private void styleTextField(JTextField field, Font font, Color borderColor, Dimension size) {
-        field.setFont(font);
-        field.setPreferredSize(size);
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, size.height));
-        field.setBackground(Color.WHITE);
-        field.setForeground(new Color(25, 25, 25));
-        field.setCaretColor(new Color(25, 25, 25));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor, 1),
-                new EmptyBorder(0, 14, 0, 14)
-        ));
-    }
+    private void styleDateChooser(JDateChooser chooser, Font font, Color borderColor, Dimension size) {
+        chooser.setDateFormatString("yyyy-MM-dd");
+        chooser.setPreferredSize(size);
+        chooser.setMaximumSize(new Dimension(Integer.MAX_VALUE, size.height));
+        chooser.setBackground(Color.WHITE);
+        chooser.setBorder(BorderFactory.createLineBorder(borderColor, 1));
 
-    private void installDatePlaceholder(JTextField field) {
-        field.setText(DATE_PLACEHOLDER);
-        field.setForeground(new Color(185, 185, 185));
-
-        field.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (DATE_PLACEHOLDER.equals(field.getText())) {
-                    field.setText("");
-                    field.setForeground(new Color(25, 25, 25));
-                }
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (field.getText() == null || field.getText().trim().isEmpty()) {
-                    field.setText(DATE_PLACEHOLDER);
-                    field.setForeground(new Color(185, 185, 185));
-                }
-            }
-        });
+        JTextField editor = (JTextField) chooser.getDateEditor().getUiComponent();
+        editor.setFont(font);
+        editor.setBackground(Color.WHITE);
+        editor.setForeground(new Color(25, 25, 25));
+        editor.setCaretColor(new Color(25, 25, 25));
+        editor.setBorder(new EmptyBorder(0, 14, 0, 14));
+        editor.setEditable(false);
     }
 
     private void wireEvents() {
@@ -277,8 +263,8 @@ public class LeaveFormPanel extends JPanel {
     }
 
     public void setLeaveData(Leave leave) {
-        setDateText(txtStartDate, leave.getStartDate());
-        setDateText(txtEndDate, leave.getEndDate());
+        dcStartDate.setDate(parseDate(leave.getStartDate()));
+        dcEndDate.setDate(parseDate(leave.getEndDate()));
 
         cmbLeaveType.setSelectedItem(
                 leave.getLeaveType() == null || leave.getLeaveType().trim().isEmpty()
@@ -295,34 +281,35 @@ public class LeaveFormPanel extends JPanel {
         );
     }
 
-    private void setDateText(JTextField field, String value) {
-        if (value == null || value.trim().isEmpty()) {
-            field.setText(DATE_PLACEHOLDER);
-            field.setForeground(new Color(185, 185, 185));
-        } else {
-            field.setText(value);
-            field.setForeground(new Color(25, 25, 25));
+    private Date parseDate(String value) {
+        try {
+            if (value == null || value.trim().isEmpty()) {
+                return null;
+            }
+            return DATE_FORMAT.parse(value.trim());
+        } catch (Exception e) {
+            return null;
         }
     }
 
     public void clearForm() {
-        setDateText(txtStartDate, "");
-        setDateText(txtEndDate, "");
+        dcStartDate.setDate(null);
+        dcEndDate.setDate(null);
         cmbLeaveType.setSelectedIndex(0);
         txtNotes.setText("");
         txtStatus.setText("Pending");
     }
 
     public void fillLeave(Leave leave) {
-        String startDate = DATE_PLACEHOLDER.equals(txtStartDate.getText().trim()) ? "" : txtStartDate.getText().trim();
-        String endDate = DATE_PLACEHOLDER.equals(txtEndDate.getText().trim()) ? "" : txtEndDate.getText().trim();
-
-        leave.setStartDate(startDate);
-        leave.setEndDate(endDate);
+        leave.setStartDate(formatDate(dcStartDate.getDate()));
+        leave.setEndDate(formatDate(dcEndDate.getDate()));
         leave.setLeaveType((String) cmbLeaveType.getSelectedItem());
         leave.setNotes(txtNotes.getText().trim());
         leave.setStatus(txtStatus.getText().trim());
-        leave.setReason("");
+    }
+
+    private String formatDate(Date date) {
+        return date == null ? "" : DATE_FORMAT.format(date);
     }
 
     public void addBackListener(java.awt.event.ActionListener listener) {

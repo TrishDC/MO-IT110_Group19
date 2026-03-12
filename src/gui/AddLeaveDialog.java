@@ -66,7 +66,6 @@ public class AddLeaveDialog extends JDialog {
             leave.setStartDate(start);
             leave.setEndDate(end);
             leave.setStatus(status);
-            leave.setReason("");
             leave.setNotes("");
 
             service.add(leave);

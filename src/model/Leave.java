@@ -1,14 +1,27 @@
 package model;
 
 public class Leave {
+
     private int leaveId;
     private String employeeId;
     private String leaveType;
     private String startDate;
     private String endDate;
-    private String reason;
     private String notes;
     private String status;
+
+    public Leave() {}
+
+    public Leave(int leaveId, String employeeId, String leaveType,
+                 String startDate, String endDate, String notes, String status) {
+        this.leaveId = leaveId;
+        this.employeeId = employeeId;
+        this.leaveType = leaveType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.notes = notes;
+        this.status = status;
+    }
 
     public int getLeaveId() {
         return leaveId;
@@ -48,14 +61,6 @@ public class Leave {
 
     public void setEndDate(String endDate) {
         this.endDate = endDate;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
     }
 
     public String getNotes() {

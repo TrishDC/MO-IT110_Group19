@@ -122,7 +122,6 @@ public class LeaveRequestDialog extends JDialog {
         if (leave.getLeaveType() != null) cmbType.setSelectedItem(leave.getLeaveType());
         if (leave.getStartDate() != null) txtStartDate.setText(leave.getStartDate());
         if (leave.getEndDate() != null) txtEndDate.setText(leave.getEndDate());
-        if (leave.getReason() != null) txtReason.setText(leave.getReason());
         if (leave.getNotes() != null) txtNotes.setText(leave.getNotes());
     }
 
@@ -130,7 +129,6 @@ public class LeaveRequestDialog extends JDialog {
         leave.setLeaveType((String) cmbType.getSelectedItem());
         leave.setStartDate(txtStartDate.getText().trim());
         leave.setEndDate(txtEndDate.getText().trim());
-        leave.setReason(txtReason.getText().trim());
         leave.setNotes(txtNotes.getText().trim());
 
         saved = true;
