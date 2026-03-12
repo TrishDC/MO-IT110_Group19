@@ -3,6 +3,8 @@ package repository;
 import RBAC.RBACSetup;
 import RBAC.Role;
 import model.Employee;
+import model.RegularEmployee;
+import model.ProbitionaryEmployee; // Ensure this matches your filename spelling
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
@@ -24,9 +26,7 @@ import java.util.Map;
 public class CsvEmployeeRepository implements EmployeeRepository {
 
     private final Path csvPath;
-
-    private static final DateTimeFormatter DATE_FMT =
-            DateTimeFormatter.ofPattern("M/d/yyyy");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("M/d/yyyy");
 
     public CsvEmployeeRepository(String path) {
         this.csvPath = Paths.get(path);
@@ -34,7 +34,6 @@ public class CsvEmployeeRepository implements EmployeeRepository {
 
     @Override
     public List<Employee> loadAll() throws IOException {
-
         List<Employee> employees = new ArrayList<>();
         Map<String, Role> roles = RBACSetup.setupRoles();
 
@@ -42,15 +41,12 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                 new FileReader(csvPath.toFile(), StandardCharsets.UTF_8))) {
 
             csv.readNext(); // Skip header
-
             String[] parts;
 
             while ((parts = csv.readNext()) != null) {
+                if (parts.length < 20) continue;
 
-                if (parts.length < 20) {
-                    continue;
-                }
-
+                // 1. Parsing core identity and financial data
                 String id = parts[0].trim();
                 String last = parts[1].trim();
                 String first = parts[2].trim();
@@ -63,84 +59,58 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                 BigDecimal semi = parseDecimalOrZero(cleanNumber(parts[17]));
                 BigDecimal hour = parseDecimalOrZero(cleanNumber(parts[18]));
 
-                String roleName = parts[19] == null ? "" : parts[19].trim().toUpperCase();
-                Role role = roles.get(roleName);
+                // 2. Identify Status for Factory Logic
+                String status = parts[10] != null ? parts[10].trim() : "";
+                
+                // 3. FACTORY: Instantiate the specific subclass
+                Employee e;
+                if ("Regular".equalsIgnoreCase(status)) {
+                    e = new RegularEmployee(id, first, last, birth, basic, rice, phoneA, clothA, semi, hour);
+                } else {
+                    e = new ProbitionaryEmployee(id, first, last, birth, basic, rice, phoneA, clothA, semi, hour);
+                }
 
-                Employee e = new Employee(
-                        id,
-                        first,
-                        last,
-                        birth,
-                        basic,
-                        rice,
-                        phoneA,
-                        clothA,
-                        semi,
-                        hour
-                ) {
-                    @Override
-                    public BigDecimal calculateSalary() {
-                        throw new UnsupportedOperationException("Not supported yet.");
-                    }
-                };
-
+                // 4. Populate shared Employee fields
                 e.setAddress(parts[4]);
                 e.setPhone(fixLongNumber(parts[5]));
                 e.setSssNumber(fixLongNumber(parts[6]));
                 e.setPhilHealthNumber(fixLongNumber(parts[7]));
                 e.setTinNumber(fixLongNumber(parts[8]));
                 e.setPagIbigNumber(fixLongNumber(parts[9]));
-                e.setStatus(parts[10]);
+                e.setStatus(status);
                 e.setPosition(parts[11]);
                 e.setSupervisor(parts[12]);
-                e.setRole(role);
+
+                // 5. Assign RBAC Role
+                String roleName = parts[19] == null ? "" : parts[19].trim().toUpperCase();
+                e.setRole(roles.get(roleName));
 
                 employees.add(e);
             }
-
         } catch (CsvValidationException ex) {
             throw new IOException("Invalid CSV format", ex);
         }
-
         return employees;
     }
 
     @Override
     public void saveAll(List<Employee> employees) throws IOException {
-
         Path temp = csvPath.resolveSibling(csvPath.getFileName() + ".tmp");
 
         try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8);
              CSVWriter csv = new CSVWriter(writer)) {
 
             String[] header = {
-                    "Employee",
-                    "Last Name",
-                    "First Name",
-                    "Birthday",
-                    "Address",
-                    "Phone Number",
-                    "SSS Number",
-                    "PhilHealth Number",
-                    "TIN Number",
-                    "Pag-IBIG Number",
-                    "Status",
-                    "Position",
-                    "Supervisor",
-                    "Basic Salary",
-                    "Rice Subsidy",
-                    "Phone Allowance",
-                    "Clothing Allowance",
-                    "Semi-monthly Rate",
-                    "Hourly Rate"
+                    "Employee #", "Last Name", "First Name", "Birthday", "Address", "Phone Number", 
+                    "SSS Number", "PhilHealth Number", "TIN Number", "Pag-IBIG Number", "Status", 
+                    "Position", "Supervisor", "Basic Salary", "Rice Subsidy", "Phone Allowance", 
+                    "Clothing Allowance", "Semi-monthly Rate", "Hourly Rate", "Role"
             };
 
             csv.writeNext(header);
 
             for (Employee e : employees) {
-
                 String[] row = {
-
                         e.getId(),
                         e.getLastName(),
                         e.getFirstName(),
@@ -159,59 +129,38 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                         e.getPhoneAllowance().toPlainString(),
                         e.getClothingAllowance().toPlainString(),
                         e.getGrossSemiMonthlyRate().toPlainString(),
-                        e.getHourlyRate().toPlainString()
+                        e.getHourlyRate().toPlainString(),
+                        e.getRole() != null ? e.getRole().getName() : ""
                 };
-
                 csv.writeNext(row);
             }
         }
-
         Files.deleteIfExists(csvPath);
         Files.move(temp, csvPath);
     }
 
     private LocalDate parseDateOrNow(String txt) {
-        try {
-            return LocalDate.parse(txt, DATE_FMT);
-        } catch (Exception ex) {
-            return LocalDate.now();
-        }
+        try { return LocalDate.parse(txt, DATE_FMT); } 
+        catch (Exception ex) { return LocalDate.now(); }
     }
 
     private BigDecimal parseDecimalOrZero(String txt) {
-        try {
-            return new BigDecimal(txt);
-        } catch (Exception ex) {
-            return BigDecimal.ZERO;
-        }
+        try { return new BigDecimal(txt); } 
+        catch (Exception ex) { return BigDecimal.ZERO; }
     }
 
     private String fixLongNumber(String value) {
-
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
+        if (value == null || value.isBlank()) return "";
         value = value.trim();
-
         if (value.contains("E") || value.contains("e")) {
-
-            try {
-                value = new BigDecimal(value).toPlainString();
-            } catch (NumberFormatException ex) {
-            }
+            try { value = new BigDecimal(value).toPlainString(); } 
+            catch (NumberFormatException ignored) {}
         }
-        
-        
-
         return value;
     }
-    
+
     private String cleanNumber(String value) {
-        if (value == null) {
-            return "0";
-        }
+        if (value == null) return "0";
         return value.replace(",", "").trim();
     }
 }
-    

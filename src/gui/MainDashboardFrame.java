@@ -235,10 +235,13 @@ public class MainDashboardFrame extends JFrame {
     private void initCards() {
         contentPanel.add(new DashboardPanel(), CARD_DASHBOARD);
         contentPanel.add(new EmployeeManagementPanel(employeeRepo, employeeCsvPath, currentUser), CARD_EMPLOYEES);
-        contentPanel.add(new PayrollPanel(), CARD_PAYROLL);
+       // contentPanel.add(new PayrollPanel(), CARD_PAYROLL);
+       contentPanel.add(new PayrollPanel(employeeRepo, employeeCsvPath, currentUser), CARD_PAYROLL);
 
         LeaveService leaveService = new LeaveService(new CsvLeaveRepository());
-
+    }
+        
+ /*
         contentPanel.add(new EmployeeLeavesPanel(
                 leaveService,
                 safe(currentUser.getId()),
@@ -250,9 +253,12 @@ public class MainDashboardFrame extends JFrame {
         contentPanel.add(new AttendancePanel(), CARD_ATTENDANCE);
     }
 
-    private void showCard(String cardName) {
+*/
+       private void showCard(String cardName) {
         cardLayout.show(contentPanel, cardName);
     }
+    
+    
 
     private String safe(String value) {
         return value == null ? "" : value.trim();

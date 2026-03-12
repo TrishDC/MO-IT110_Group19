@@ -8,6 +8,7 @@
  * @author Rhynne Gracelle
  */
 
+/*
 package gui;
 
 import model.Leave;
@@ -332,4 +333,4 @@ public class EmployeeLeavesPanel extends JPanel {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
-}
+*/

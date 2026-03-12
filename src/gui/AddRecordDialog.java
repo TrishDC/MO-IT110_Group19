@@ -1,6 +1,5 @@
 package gui;
 
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -12,57 +11,89 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import model.Employee;
 import repository.EmployeeRepository;
 
-/**
- * Dialog to add a new Employee. Uses JSpinner for birthday
- * so you don’t need any external calendar library.
- */
 public class AddRecordDialog extends JDialog {
     private final EmployeeRepository repo;
     private final Runnable onSave;
 
-    // Fields
-    private final JTextField idField               = new JTextField(6);
-    private final JTextField lastNameField         = new JTextField(15);
-    private final JTextField firstNameField        = new JTextField(15);
-    private final JSpinner birthdaySpinner         = new JSpinner(new SpinnerDateModel());
-    private final JTextField addressField          = new JTextField(20);
-    private final JTextField phoneField            = new JTextField(12);
-    private final JTextField sssField              = new JTextField(12);
-    private final JTextField philHealthField       = new JTextField(12);
-    private final JTextField tinField              = new JTextField(12);
-    private final JTextField pagIbigField          = new JTextField(12);
-    private final JTextField statusField           = new JTextField(10);
-    private final JTextField positionField         = new JTextField(15);
-    private final JTextField supervisorField       = new JTextField(15);
-    private final JTextField basicSalaryField      = new JTextField(10);
-    private final JTextField riceSubsidyField      = new JTextField(10);
-    private final JTextField phoneAllowanceField   = new JTextField(10);
-    private final JTextField clothingAllowanceField= new JTextField(10);
-    private final JTextField semiMonthlyRateField  = new JTextField(10);
-    private final JTextField hourlyRateField       = new JTextField(10);
+    // Standard Fields
+    private final JTextField idField                = new JTextField(6);
+    private final JTextField lastNameField          = new JTextField(15);
+    private final JTextField firstNameField         = new JTextField(15);
+    private final JSpinner birthdaySpinner          = new JSpinner(new SpinnerDateModel());
+    private final JTextField addressField           = new JTextField(20);
+    private final JTextField phoneField             = new JTextField(12);
+    private final JTextField sssField               = new JTextField(12);
+    private final JTextField philHealthField        = new JTextField(12);
+    private final JTextField tinField               = new JTextField(12);
+    private final JTextField pagIbigField           = new JTextField(12);
+    
+    // Status: Strictly these two options
+    private final JComboBox<String> statusCB        = new JComboBox<>(new String[]{"Regular", "Probationary"});
+    
+    // Position & Supervisor: Dynamic from CSV + Editable for new entries
+    private final JComboBox<String> positionCB      = new JComboBox<>();
+    private final JComboBox<String> supervisorCB    = new JComboBox<>();
+
+    // Salary Fields
+    private final JTextField basicSalaryField       = new JTextField(10);
+    private final JTextField riceSubsidyField       = new JTextField(10);
+    private final JTextField phoneAllowanceField    = new JTextField(10);
+    private final JTextField clothingAllowanceField = new JTextField(10);
+    private final JTextField semiMonthlyRateField   = new JTextField(10);
+    private final JTextField hourlyRateField        = new JTextField(10);
 
     public AddRecordDialog(Frame owner, EmployeeRepository repo, Runnable onSave) {
         super(owner, "Add New Employee", true);
         this.repo   = repo;
         this.onSave = onSave;
 
-        // format the spinner like M/d/yyyy
         JSpinner.DateEditor de = new JSpinner.DateEditor(birthdaySpinner, "M/d/yyyy");
         birthdaySpinner.setEditor(de);
 
+        // Make these editable so you can type new values not yet in the CSV
+        positionCB.setEditable(true);
+        supervisorCB.setEditable(true);
+
+        // Initialize dynamic lists
+        populateDynamicCombos();
+        
         buildForm();
         pack();
         setLocationRelativeTo(owner);
 
-        // auto‐fill next numeric ID
         idField.setText(nextId());
         idField.setEditable(false);
     }
 
-    // find max existing ID and add 1
+    private void populateDynamicCombos() {
+        supervisorCB.addItem("N/A");
+        
+        try {
+            List<Employee> all = repo.loadAll();
+            Set<String> positions = new TreeSet<>();
+            Set<String> supervisors = new TreeSet<>();
+            
+            for (Employee e : all) {
+                if (e.getPosition() != null && !e.getPosition().isBlank()) 
+                    positions.add(e.getPosition().trim());
+                
+                if (e.getSupervisor() != null && !e.getSupervisor().isBlank() && !e.getSupervisor().equals("N/A")) 
+                    supervisors.add(e.getSupervisor().trim());
+            }
+            
+            positions.forEach(positionCB::addItem);
+            supervisors.forEach(supervisorCB::addItem);
+            
+        } catch (IOException ex) {
+            System.err.println("Error loading dynamic lists: " + ex.getMessage());
+        }
+    }
+
     private String nextId() {
         try {
             List<Employee> all = repo.loadAll();
@@ -94,11 +125,12 @@ public class AddRecordDialog extends JDialog {
             "Basic Salary:", "Rice Subsidy:", "Phone Allowance:",
             "Clothing Allowance:", "Semi-monthly Rate:", "Hourly Rate:"
         };
+        
         JComponent[] fields = {
             idField, lastNameField, firstNameField, birthdaySpinner,
             addressField, phoneField, sssField, philHealthField,
-            tinField, pagIbigField, statusField, positionField,
-            supervisorField, basicSalaryField, riceSubsidyField,
+            tinField, pagIbigField, statusCB, positionCB,
+            supervisorCB, basicSalaryField, riceSubsidyField,
             phoneAllowanceField, clothingAllowanceField,
             semiMonthlyRateField, hourlyRateField
         };
@@ -107,6 +139,7 @@ public class AddRecordDialog extends JDialog {
             c.gridx = 0; c.gridy = i;
             form.add(new JLabel(labels[i]), c);
             c.gridx = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
             form.add(fields[i], c);
         }
 
@@ -114,7 +147,7 @@ public class AddRecordDialog extends JDialog {
         JButton saveBtn  = new JButton("Save");
         JButton closeBtn = new JButton("Close");
         saveBtn.addActionListener(this::onSave);
-        closeBtn.addActionListener(_ -> dispose());
+        closeBtn.addActionListener(e -> dispose());
         buttons.add(saveBtn);
         buttons.add(closeBtn);
 
@@ -125,16 +158,10 @@ public class AddRecordDialog extends JDialog {
 
     private void onSave(ActionEvent ev) {
         try {
-            // basic validation
-            if (lastNameField.getText().trim().isEmpty() ||
-                firstNameField.getText().trim().isEmpty() ||
-                birthdaySpinner.getValue() == null ||
-                sssField.getText().trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                    "Please fill in Last Name, First Name, Birthday, and SSS #.");
+            if (lastNameField.getText().trim().isEmpty() || firstNameField.getText().trim().isEmpty()) {
+                throw new IllegalArgumentException("Full name is required.");
             }
 
-            // spinner → LocalDate
             Date dt = (Date) birthdaySpinner.getValue();
             LocalDate bday = Instant.ofEpochMilli(dt.getTime())
                                     .atZone(ZoneId.systemDefault())
@@ -157,34 +184,38 @@ public class AddRecordDialog extends JDialog {
                     throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
                 }
             };
-            // set the rest
-            e.setAddress(         addressField.getText().trim());
-            e.setPhone(           phoneField.getText().trim());
-            e.setSssNumber(       sssField.getText().trim());
-            e.setPhilHealthNumber(philHealthField.getText().trim());
-            e.setTinNumber(       tinField.getText().trim());
-            e.setPagIbigNumber(   pagIbigField.getText().trim());
-            e.setStatus(          statusField.getText().trim());
-            e.setPosition(        positionField.getText().trim());
-            e.setSupervisor(      supervisorField.getText().trim());
 
-            // save and notify
+            e.setAddress(addressField.getText().trim());
+            e.setPhone(phoneField.getText().trim());
+            e.setSssNumber(sssField.getText().trim());
+            e.setPhilHealthNumber(philHealthField.getText().trim());
+            e.setTinNumber(tinField.getText().trim());
+            e.setPagIbigNumber(pagIbigField.getText().trim());
+            
+            // Getting values from combo boxes (handles both selection and typed text)
+            e.setStatus((String) statusCB.getSelectedItem());
+            e.setPosition(((String) positionCB.getSelectedItem()).trim());
+            e.setSupervisor(((String) supervisorCB.getSelectedItem()).trim());
+
             List<Employee> all = repo.loadAll();
             all.add(e);
             repo.saveAll(all);
+            
             JOptionPane.showMessageDialog(this, "Employee Record is saved.");
             dispose();
             if (onSave != null) onSave.run();
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                "Invalid input: " + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private BigDecimal parseDecimal(String txt) {
-        if (txt.isEmpty()) return BigDecimal.ZERO;
-        return new BigDecimal(txt);
+        if (txt == null || txt.isEmpty()) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(txt);
+        } catch (NumberFormatException ex) {
+            return BigDecimal.ZERO;
+        }
     }
 }
