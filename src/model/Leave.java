@@ -10,7 +10,8 @@ public class Leave {
     private String notes;
     private String status;
 
-    public Leave() {}
+    public Leave() {
+    }
 
     public Leave(int leaveId, String employeeId, String leaveType,
                  String startDate, String endDate, String notes, String status) {
@@ -36,7 +37,7 @@ public class Leave {
     }
 
     public void setEmployeeId(String employeeId) {
-        this.employeeId = employeeId;
+        this.employeeId = employeeId == null ? "" : employeeId.trim();
     }
 
     public String getLeaveType() {
@@ -44,7 +45,7 @@ public class Leave {
     }
 
     public void setLeaveType(String leaveType) {
-        this.leaveType = leaveType;
+        this.leaveType = leaveType == null ? "" : leaveType.trim();
     }
 
     public String getStartDate() {
@@ -52,7 +53,7 @@ public class Leave {
     }
 
     public void setStartDate(String startDate) {
-        this.startDate = startDate;
+        this.startDate = startDate == null ? "" : startDate.trim();
     }
 
     public String getEndDate() {
@@ -60,7 +61,7 @@ public class Leave {
     }
 
     public void setEndDate(String endDate) {
-        this.endDate = endDate;
+        this.endDate = endDate == null ? "" : endDate.trim();
     }
 
     public String getNotes() {
@@ -68,7 +69,7 @@ public class Leave {
     }
 
     public void setNotes(String notes) {
-        this.notes = notes;
+        this.notes = notes == null ? "" : notes.trim();
     }
 
     public String getStatus() {
@@ -76,6 +77,6 @@ public class Leave {
     }
 
     public void setStatus(String status) {
-        this.status = status;
+        this.status = status == null ? "" : status.trim();
     }
 }

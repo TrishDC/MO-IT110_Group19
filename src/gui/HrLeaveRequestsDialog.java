@@ -1,13 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
-/**
- *
- * @author Rhynne Gracelle
- */
-
 package gui;
 
 import model.Leave;
@@ -63,7 +53,8 @@ public class HrLeaveRequestsDialog extends JDialog {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        int[] widths = {80, 100, 130, 110, 110, 180, 180, 100};
+        // 7 columns only
+        int[] widths = {80, 100, 130, 110, 110, 220, 100};
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }

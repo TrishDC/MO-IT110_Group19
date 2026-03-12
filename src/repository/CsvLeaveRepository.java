@@ -9,6 +9,7 @@ import java.util.List;
 public class CsvLeaveRepository implements LeaveRepository {
 
     private static final String FILE_PATH = "data/leaves.csv";
+    private static final String HEADER = "leaveId,employeeId,leaveType,startDate,endDate,notes,status";
 
     public CsvLeaveRepository() {
         ensureFileExists();
@@ -24,7 +25,9 @@ public class CsvLeaveRepository implements LeaveRepository {
             }
 
             if (!file.exists()) {
-                file.createNewFile();
+                try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+                    pw.println(HEADER);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to prepare leave CSV file.", e);
@@ -37,13 +40,20 @@ public class CsvLeaveRepository implements LeaveRepository {
 
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
             String line;
+            boolean firstRow = true;
 
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
 
+                if (firstRow) {
+                    firstRow = false;
+                    if (line.toLowerCase().startsWith("leaveid,")) {
+                        continue;
+                    }
+                }
+
                 String[] parts = line.split(",", -1);
 
-                // Expected format:
                 // leaveId,employeeId,leaveType,startDate,endDate,notes,status
                 if (parts.length < 7) continue;
 
@@ -71,7 +81,7 @@ public class CsvLeaveRepository implements LeaveRepository {
 
         for (Leave leave : findAll()) {
             if (leave.getEmployeeId() != null &&
-                leave.getEmployeeId().equalsIgnoreCase(employeeId)) {
+                    leave.getEmployeeId().equalsIgnoreCase(employeeId)) {
                 result.add(leave);
             }
         }
@@ -85,7 +95,7 @@ public class CsvLeaveRepository implements LeaveRepository {
 
         for (Leave leave : findAll()) {
             if (leave.getStatus() != null &&
-                leave.getStatus().equalsIgnoreCase(status)) {
+                    leave.getStatus().equalsIgnoreCase(status)) {
                 result.add(leave);
             }
         }
@@ -147,6 +157,7 @@ public class CsvLeaveRepository implements LeaveRepository {
 
     private void writeAll(List<Leave> leaves) {
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_PATH))) {
+            pw.println(HEADER);
             for (Leave leave : leaves) {
                 pw.println(toCsvLine(leave));
             }

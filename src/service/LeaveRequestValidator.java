@@ -8,36 +8,30 @@
  * @author Rhynne Gracelle
  */
 
-
 package service;
+
+import model.Leave;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import model.EmployeeLeaveRequest;
 
 public final class LeaveRequestValidator {
 
     private LeaveRequestValidator() {
     }
 
-    public static void validate(EmployeeLeaveRequest request) {
-        if (request == null) {
+    public static void validate(Leave leave) {
+        if (leave == null) {
             throw new IllegalArgumentException("Leave request cannot be null.");
         }
 
-        requireNotBlank(request.getEmployeeId(), "Employee ID is required.");
-        requireNotBlank(request.getEmployeeName(), "Employee name is required.");
-        requireNotBlank(request.getDepartment(), "Department is required.");
-        requireNotBlank(request.getStartDate(), "Start date is required.");
-        requireNotBlank(request.getEndDate(), "End date is required.");
-        requireNotBlank(request.getReason(), "Reason is required.");
+        requireNotBlank(leave.getEmployeeId(), "Employee ID is required.");
+        requireNotBlank(leave.getLeaveType(), "Leave type is required.");
+        requireNotBlank(leave.getStartDate(), "Start date is required.");
+        requireNotBlank(leave.getEndDate(), "End date is required.");
 
-        if (request.getReason().trim().length() < 5) {
-            throw new IllegalArgumentException("Reason must be at least 5 characters.");
-        }
-
-        LocalDate start = parseDate(request.getStartDate(), "Start date must use yyyy-MM-dd.");
-        LocalDate end = parseDate(request.getEndDate(), "End date must use yyyy-MM-dd.");
+        LocalDate start = parseDate(leave.getStartDate(), "Start date must use yyyy-MM-dd.");
+        LocalDate end = parseDate(leave.getEndDate(), "End date must use yyyy-MM-dd.");
 
         if (end.isBefore(start)) {
             throw new IllegalArgumentException("End date cannot be earlier than start date.");
@@ -47,7 +41,7 @@ public final class LeaveRequestValidator {
             throw new IllegalArgumentException("Start date cannot be earlier than today.");
         }
 
-        if (request.getNotes() != null && request.getNotes().length() > 250) {
+        if (leave.getNotes() != null && leave.getNotes().length() > 250) {
             throw new IllegalArgumentException("Notes must not exceed 250 characters.");
         }
     }

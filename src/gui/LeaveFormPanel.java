@@ -1,7 +1,7 @@
 package gui;
 
-import model.Leave;
 import com.toedter.calendar.JDateChooser;
+import model.Leave;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -20,8 +20,12 @@ public class LeaveFormPanel extends JPanel {
     private final JComboBox<String> cmbLeaveType = new JComboBox<>(
             new String[]{"Vacation Leave", "Sick Leave", "Emergency Leave", "Personal Leave", "Other"}
     );
+
     private final JTextArea txtNotes = new JTextArea(7, 20);
-    private final JTextField txtStatus = new JTextField();
+
+    private final JComboBox<String> cmbStatus = new JComboBox<>(
+            new String[]{"Pending", "Approved", "Rejected"}
+    );
 
     private java.awt.event.ActionListener backListener;
 
@@ -43,8 +47,7 @@ public class LeaveFormPanel extends JPanel {
         styleComponents();
         wireEvents();
 
-        txtStatus.setEditable(false);
-        txtStatus.setText("Pending");
+        cmbStatus.setSelectedItem("Pending");
     }
 
     private JPanel buildTopBar() {
@@ -122,7 +125,7 @@ public class LeaveFormPanel extends JPanel {
         right.add(Box.createVerticalStrut(22));
         right.add(createNotesBlock());
         right.add(Box.createVerticalStrut(22));
-        right.add(createFieldBlock("Status", txtStatus));
+        right.add(createFieldBlock("Status", cmbStatus));
         right.add(Box.createVerticalStrut(22));
         right.add(createSubmitRow());
 
@@ -195,16 +198,12 @@ public class LeaveFormPanel extends JPanel {
         cmbLeaveType.setOpaque(true);
         cmbLeaveType.setBorder(BorderFactory.createLineBorder(borderColor, 1));
 
-        txtStatus.setFont(fieldFont);
-        txtStatus.setPreferredSize(fieldSize);
-        txtStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE, fieldSize.height));
-        txtStatus.setBackground(Color.WHITE);
-        txtStatus.setForeground(new Color(25, 25, 25));
-        txtStatus.setCaretColor(new Color(25, 25, 25));
-        txtStatus.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor, 1),
-                new EmptyBorder(0, 14, 0, 14)
-        ));
+        cmbStatus.setFont(fieldFont);
+        cmbStatus.setPreferredSize(fieldSize);
+        cmbStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE, fieldSize.height));
+        cmbStatus.setBackground(Color.WHITE);
+        cmbStatus.setForeground(new Color(25, 25, 25));
+        cmbStatus.setBorder(BorderFactory.createLineBorder(borderColor, 1));
 
         btnSubmit.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnSubmit.setForeground(Color.WHITE);
@@ -274,7 +273,7 @@ public class LeaveFormPanel extends JPanel {
 
         txtNotes.setText(leave.getNotes() == null ? "" : leave.getNotes());
 
-        txtStatus.setText(
+        cmbStatus.setSelectedItem(
                 leave.getStatus() == null || leave.getStatus().trim().isEmpty()
                         ? "Pending"
                         : leave.getStatus()
@@ -297,7 +296,7 @@ public class LeaveFormPanel extends JPanel {
         dcEndDate.setDate(null);
         cmbLeaveType.setSelectedIndex(0);
         txtNotes.setText("");
-        txtStatus.setText("Pending");
+        cmbStatus.setSelectedItem("Pending");
     }
 
     public void fillLeave(Leave leave) {
@@ -305,7 +304,7 @@ public class LeaveFormPanel extends JPanel {
         leave.setEndDate(formatDate(dcEndDate.getDate()));
         leave.setLeaveType((String) cmbLeaveType.getSelectedItem());
         leave.setNotes(txtNotes.getText().trim());
-        leave.setStatus(txtStatus.getText().trim());
+        leave.setStatus(String.valueOf(cmbStatus.getSelectedItem()));
     }
 
     private String formatDate(Date date) {
@@ -318,5 +317,15 @@ public class LeaveFormPanel extends JPanel {
 
     public void addSubmitListener(java.awt.event.ActionListener listener) {
         btnSubmit.addActionListener(listener);
+    }
+
+    public void setHrReviewMode(boolean hrReviewMode) {
+        dcStartDate.setEnabled(!hrReviewMode);
+        dcEndDate.setEnabled(!hrReviewMode);
+        cmbLeaveType.setEnabled(!hrReviewMode);
+        txtNotes.setEditable(!hrReviewMode);
+
+        cmbStatus.setEnabled(true);
+        btnSubmit.setText(hrReviewMode ? "Submit" : btnSubmit.getText());
     }
 }

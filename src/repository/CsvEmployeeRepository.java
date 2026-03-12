@@ -66,7 +66,7 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                 String roleName = parts[19] == null ? "" : parts[19].trim().toUpperCase();
                 Role role = roles.get(roleName);
 
-                Employee e = new Employee(
+                Employee employee = new Employee(
                         id,
                         first,
                         last,
@@ -83,19 +83,19 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                         throw new UnsupportedOperationException("Not supported yet.");
                     }
                 };
+                
+                employee.setAddress(parts[4]);
+                employee.setPhone(fixLongNumber(parts[5]));
+                employee.setSssNumber(fixLongNumber(parts[6]));
+                employee.setPhilHealthNumber(fixLongNumber(parts[7]));
+                employee.setTinNumber(fixLongNumber(parts[8]));
+                employee.setPagIbigNumber(fixLongNumber(parts[9]));
+                employee.setStatus(parts[10]);
+                employee.setPosition(parts[11]);
+                employee.setSupervisor(parts[12]);
+                employee.setRole(role);
 
-                e.setAddress(parts[4]);
-                e.setPhone(fixLongNumber(parts[5]));
-                e.setSssNumber(fixLongNumber(parts[6]));
-                e.setPhilHealthNumber(fixLongNumber(parts[7]));
-                e.setTinNumber(fixLongNumber(parts[8]));
-                e.setPagIbigNumber(fixLongNumber(parts[9]));
-                e.setStatus(parts[10]);
-                e.setPosition(parts[11]);
-                e.setSupervisor(parts[12]);
-                e.setRole(role);
-
-                employees.add(e);
+                employees.add(employee);
             }
 
         } catch (CsvValidationException ex) {
