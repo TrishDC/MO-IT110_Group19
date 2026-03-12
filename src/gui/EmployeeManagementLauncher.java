@@ -3,7 +3,6 @@ package gui;
 import model.Employee;
 import repository.BulkAccountGenerator;
 import repository.CsvEmployeeRepository;
-import repository.EmployeeRepository;
 
 import javax.swing.*;
 import java.nio.file.Files;
@@ -18,7 +17,7 @@ public class EmployeeManagementLauncher {
             try {
                 Path csvPath = resolveEmployeeCsvPath();
 
-                // Always generate employee accounts from CSV
+                // Generate login accounts from CSV
                 CsvEmployeeRepository repo = new CsvEmployeeRepository(csvPath.toString());
                 BulkAccountGenerator.generateAccounts(repo);
 
@@ -43,10 +42,8 @@ public class EmployeeManagementLauncher {
             Employee loggedInEmployee = loginDialog.getLoggedInEmployee();
             dummy.dispose();
 
-            Path csvPath = resolveEmployeeCsvPath();
-            EmployeeRepository repo = new CsvEmployeeRepository(csvPath.toString());
-
-            new EmployeeManagementFrame(repo, csvPath, loggedInEmployee).setVisible(true);
+            // Launch the new CardLayout dashboard
+            MainDashboardLauncher.launch(loggedInEmployee);
         });
     }
 

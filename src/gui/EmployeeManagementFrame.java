@@ -1,11 +1,16 @@
 package gui;
 
 import RBAC.Permission;
+
 import model.Employee;
+
 import repository.CsvEmployeeRepository;
 import repository.EmployeeRepository;
+
 import service.AuthorizationService;
 import service.SessionManager;
+import service.EmployeeLeaveUiService;
+import service.InMemoryEmployeeLeaveUiService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -135,7 +140,7 @@ public class EmployeeManagementFrame extends JFrame {
         topSection.add(Box.createVerticalStrut(22));
         topSection.add(createNavLink("Payroll", false, () -> showNavigationMessage("Payroll")));
         topSection.add(Box.createVerticalStrut(22));
-        topSection.add(createNavLink("Requests", false, () -> showNavigationMessage("Requests")));
+        topSection.add(createNavLink("Leave", false, this::openLeavePage));
         topSection.add(Box.createVerticalStrut(22));
         topSection.add(createNavLink("Attendance", false, () -> showNavigationMessage("Attendance")));
 
@@ -542,6 +547,49 @@ public class EmployeeManagementFrame extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
+    
+    private void openLeavePage() {
+        if (currentUser == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No logged-in employee found.",
+                    "Navigation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        try {
+            EmployeeLeaveUiService leaveService = new InMemoryEmployeeLeaveUiService();
+
+            String employeeId = safe(currentUser.getId());
+            String employeeName = (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim();
+            String department = getDepartmentSafe(currentUser);
+            String position = safe(currentUser.getPosition());
+
+            EmployeeLeavesFrame leaveFrame = new EmployeeLeavesFrame(
+                    leaveService,
+                    employeeId,
+                    employeeName,
+                    department,
+                    position
+            );
+
+            leaveFrame.setVisible(true);
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Unable to open Leave page: " + ex.getMessage(),
+                    "Navigation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private String getDepartmentSafe(Employee employee) {
+        return "N/A";
+    }
 
     private void handleLogout() {
         int confirm = JOptionPane.showConfirmDialog(
@@ -639,4 +687,5 @@ public class EmployeeManagementFrame extends JFrame {
 
         return candidates[1].toAbsolutePath().normalize();
     }
+    
 }
