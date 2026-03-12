@@ -86,43 +86,49 @@ public class AttendancePanel extends JPanel {
     }
 
     private JPanel buildTopArea() {
-        JPanel top = new JPanel(new BorderLayout());
-        top.setOpaque(false);
-        top.setBorder(new EmptyBorder(0, 0, 6, 0));
 
-        JPanel left = new JPanel();
-        left.setOpaque(false);
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setBorder(new EmptyBorder(0, 0, 6, 0));
 
         boolean canViewBroader = attendanceService.canViewBroaderAttendance(currentUser);
         boolean canUpdateAny = attendanceService.canUpdateAnyAttendance(currentUser);
 
+        // ---------- Row 1: Search ----------
         if (canViewBroader) {
-            txtEmployeeFilter = createSearchField();
-
             JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             searchRow.setOpaque(false);
+
+            txtEmployeeFilter = createSearchField();
+            txtEmployeeFilter.addActionListener(e -> refreshBasedOnRole());
+
             searchRow.add(txtEmployeeFilter);
 
-            JPanel viewButtonsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-            viewButtonsRow.setOpaque(false);
+            top.add(searchRow);
+            top.add(Box.createVerticalStrut(14));
+        }
 
+        // ---------- Row 2: Buttons ----------
+        JPanel buttonRow = new JPanel(new BorderLayout());
+        buttonRow.setOpaque(false);
+
+        JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        leftButtons.setOpaque(false);
+
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightButtons.setOpaque(false);
+
+        if (canViewBroader) {
             btnViewMine = createActionButton("My Records");
             btnViewAll = createActionButton("View All");
 
             btnViewMine.addActionListener(e -> loadMyAttendanceHistory());
             btnViewAll.addActionListener(e -> loadAttendanceHistory());
 
-            viewButtonsRow.add(btnViewMine);
-            viewButtonsRow.add(btnViewAll);
-
-            left.add(searchRow);
-            left.add(Box.createVerticalStrut(8));
-            left.add(viewButtonsRow);
+            leftButtons.add(btnViewMine);
+            leftButtons.add(btnViewAll);
         }
-
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        right.setOpaque(false);
 
         btnUpdate = createActionButton("Update");
         btnDelete = createActionButton("Delete");
@@ -130,14 +136,16 @@ public class AttendancePanel extends JPanel {
         btnTimeOut = createActionButton("Time Out");
         btnRefresh = createActionButton("Refresh");
 
+        // HR only
         if (canUpdateAny) {
-            right.add(btnUpdate);
-            right.add(btnDelete);
+            rightButtons.add(btnUpdate);
+            rightButtons.add(btnDelete);
         }
 
-        right.add(btnTimeIn);
-        right.add(btnTimeOut);
-        right.add(btnRefresh);
+        // Executive: no Update, no Delete
+        rightButtons.add(btnTimeIn);
+        rightButtons.add(btnTimeOut);
+        rightButtons.add(btnRefresh);
 
         btnUpdate.addActionListener(e -> openUpdateForm());
         btnDelete.addActionListener(e -> deleteSelectedAttendance());
@@ -145,8 +153,10 @@ public class AttendancePanel extends JPanel {
         btnTimeOut.addActionListener(e -> handleTimeOut());
         btnRefresh.addActionListener(e -> refreshBasedOnRole());
 
-        top.add(left, BorderLayout.WEST);
-        top.add(right, BorderLayout.EAST);
+        buttonRow.add(leftButtons, BorderLayout.WEST);
+        buttonRow.add(rightButtons, BorderLayout.EAST);
+
+        top.add(buttonRow);
 
         return top;
     }
