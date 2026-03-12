@@ -12,10 +12,14 @@
 package gui;
 
 import model.Employee;
+
 import repository.EmployeeRepository;
+import repository.CsvLeaveRepository;
+
 import service.EmployeeLeaveUiService;
 import service.InMemoryEmployeeLeaveUiService;
 import service.SessionManager;
+import service.LeaveService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -233,7 +237,8 @@ public class MainDashboardFrame extends JFrame {
         contentPanel.add(new EmployeeManagementPanel(employeeRepo, employeeCsvPath, currentUser), CARD_EMPLOYEES);
         contentPanel.add(new PayrollPanel(), CARD_PAYROLL);
 
-        EmployeeLeaveUiService leaveService = new InMemoryEmployeeLeaveUiService();
+        LeaveService leaveService = new LeaveService(new CsvLeaveRepository());
+
         contentPanel.add(new EmployeeLeavesPanel(
                 leaveService,
                 safe(currentUser.getId()),

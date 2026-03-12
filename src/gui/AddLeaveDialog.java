@@ -59,7 +59,18 @@ public class AddLeaveDialog extends JDialog {
                 status = "Pending";
             }
 
-            service.add(new Leave(leaveId, empId, type, start, end, status));
+            Leave leave = new Leave();
+            leave.setLeaveId(leaveId);
+            leave.setEmployeeId(String.valueOf(empId));
+            leave.setLeaveType(type);
+            leave.setStartDate(start);
+            leave.setEndDate(end);
+            leave.setStatus(status);
+            leave.setReason("");
+            leave.setNotes("");
+
+            service.add(leave);
+            
             JOptionPane.showMessageDialog(this, "Leave added!");
             dispose();
         } catch (Exception ex) {

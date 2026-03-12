@@ -185,8 +185,10 @@ public class EmployeeManagementPanel extends JPanel {
 
                 if (selected) {
                     setBackground(SELECT_BG);
+                    setForeground(TEXT_DARK);
                 } else {
                     setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                    setForeground(TEXT_DARK);
                 }
 
                 if (!selected && (col == 4 || col == 6) && v != null) {
@@ -235,11 +237,22 @@ public class EmployeeManagementPanel extends JPanel {
     }
 
     private void bindActionEvents() {
-        addBtn.addActionListener(e ->
-                new AddRecordDialog((Frame) SwingUtilities.getWindowAncestor(this), repo, this::loadTable).setVisible(true)
-        );
+        addBtn.addActionListener(e -> {
+            if (!AuthorizationService.hasPermission(currentUser, Permission.ADD_EMPLOYEE)) {
+                showAccessDenied();
+                return;
+            }
+
+            new AddRecordDialog((Frame) SwingUtilities.getWindowAncestor(this), repo, this::loadTable)
+                    .setVisible(true);
+        });
 
         updateBtn.addActionListener(e -> {
+            if (!AuthorizationService.hasPermission(currentUser, Permission.EDIT_EMPLOYEE)) {
+                showAccessDenied();
+                return;
+            }
+
             int r = table.getSelectedRow();
             if (r < 0) return;
 
@@ -259,6 +272,11 @@ public class EmployeeManagementPanel extends JPanel {
         });
 
         deleteBtn.addActionListener(e -> {
+            if (!AuthorizationService.hasPermission(currentUser, Permission.DELETE_EMPLOYEE)) {
+                showAccessDenied();
+                return;
+            }
+
             int r = table.getSelectedRow();
             if (r < 0) return;
 
@@ -288,6 +306,11 @@ public class EmployeeManagementPanel extends JPanel {
         });
 
         viewBtn.addActionListener(e -> {
+            if (!AuthorizationService.hasPermission(currentUser, Permission.VIEW_EMPLOYEE)) {
+                showAccessDenied();
+                return;
+            }
+
             int r = table.getSelectedRow();
             if (r < 0) return;
 
@@ -306,11 +329,32 @@ public class EmployeeManagementPanel extends JPanel {
         });
     }
 
+    private void showAccessDenied() {
+        JOptionPane.showMessageDialog(
+                this,
+                "You do not have permission for this action.",
+                "Access Denied",
+                JOptionPane.WARNING_MESSAGE
+        );
+    }
+
     private void loadTable() {
         model.setRowCount(0);
 
         try {
             List<Employee> employees = repo.loadAll();
+
+            if (employees.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No employee records found. Please check if the CSV file exists at: "
+                                + employeeCsvPath.toAbsolutePath(),
+                        "No Data",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
             for (Employee emp : employees) {
                 model.addRow(new Object[]{
                         emp.getId(),
@@ -322,8 +366,16 @@ public class EmployeeManagementPanel extends JPanel {
                         emp.getPagIbigNumber()
                 });
             }
+
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Load failed: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Load failed: " + e.getMessage() + "\n"
+                            + "Please check if the CSV file exists at: "
+                            + employeeCsvPath.toAbsolutePath(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 }
