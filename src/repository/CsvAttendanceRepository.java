@@ -156,6 +156,18 @@ public class CsvAttendanceRepository implements AttendanceRepository {
 
         throw new IllegalArgumentException("Attendance record not found for update.");
     }
+    
+    @Override
+    public void delete(String employeeId, String date) {
+        List<AttendanceRecord> all = findAll();
+
+        all.removeIf(record ->
+                record.getEmployeeId().equalsIgnoreCase(employeeId == null ? "" : employeeId.trim())
+                        && record.getDate().equalsIgnoreCase(date == null ? "" : date.trim())
+        );
+
+        writeAll(all);
+    }
 
     private void writeAll(List<AttendanceRecord> records) {
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
@@ -184,4 +196,15 @@ public class CsvAttendanceRepository implements AttendanceRepository {
         if (value == null) return "";
         return value.replace(",", " ").trim();
     }
+
+    public interface AttendanceRepository {
+        List<AttendanceRecord> findAll();
+        List<AttendanceRecord> findByEmployeeId(String employeeId);
+        AttendanceRecord findByEmployeeIdAndDate(String employeeId, String date);
+        void add(AttendanceRecord record);
+        void update(AttendanceRecord record);
+        void delete(String employeeId, String date);
+    }
+    
+
 }

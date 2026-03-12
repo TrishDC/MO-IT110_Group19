@@ -10,7 +10,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AttendanceService {
 
@@ -26,7 +25,7 @@ public class AttendanceService {
     public List<AttendanceRecord> getVisibleAttendance(Employee currentUser) {
         validateEmployee(currentUser);
 
-        if (canManageAllAttendance(currentUser)) {
+        if (canViewBroaderAttendance(currentUser)) {
             List<AttendanceRecord> records = repository.findAll();
             records.sort(Comparator.comparing(this::safeDateString).reversed());
             return records;
@@ -38,7 +37,7 @@ public class AttendanceService {
     public List<AttendanceRecord> getVisibleAttendanceByEmployee(Employee currentUser, String targetEmployeeId) {
         validateEmployee(currentUser);
 
-        if (canManageAllAttendance(currentUser)) {
+        if (canViewBroaderAttendance(currentUser)) {
             List<AttendanceRecord> records = repository.findByEmployeeId(targetEmployeeId);
             records.sort(Comparator.comparing(this::safeDateString).reversed());
             return records;
@@ -119,20 +118,38 @@ public class AttendanceService {
             throw new IllegalArgumentException("Date is required.");
         }
 
-        if (!canManageAllAttendance(currentUser) && !isOwnRecord(currentUser, updatedRecord.getEmployeeId())) {
+        if (!canUpdateAnyAttendance(currentUser) && !isOwnRecord(currentUser, updatedRecord.getEmployeeId())) {
             throw new IllegalArgumentException("You can only update your own attendance records.");
         }
 
         repository.update(updatedRecord);
     }
 
-    public boolean canManageAllAttendance(Employee currentUser) {
-        return AuthorizationService.hasPermission(currentUser, Permission.EDIT_ATTENDANCE)
-                || AuthorizationService.hasPermission(currentUser, Permission.VIEW_ATTENDANCE);
+    public void deleteAttendance(Employee currentUser, String employeeId, String date) {
+        validateEmployee(currentUser);
+
+        if (isBlank(employeeId) || isBlank(date)) {
+            throw new IllegalArgumentException("Employee ID and date are required.");
+        }
+
+        if (!canDeleteAnyAttendance(currentUser)) {
+            throw new IllegalArgumentException("Only HR can delete attendance records.");
+        }
+
+        repository.delete(employeeId, date);
+    }
+
+    public boolean canViewBroaderAttendance(Employee currentUser) {
+        return AuthorizationService.hasPermission(currentUser, Permission.VIEW_ATTENDANCE);
     }
 
     public boolean canUpdateAnyAttendance(Employee currentUser) {
         return AuthorizationService.hasPermission(currentUser, Permission.EDIT_ATTENDANCE);
+    }
+
+    public boolean canDeleteAnyAttendance(Employee currentUser) {
+        return AuthorizationService.hasPermission(currentUser, Permission.DELETE_ATTENDANCE)
+                || AuthorizationService.hasPermission(currentUser, Permission.EDIT_ATTENDANCE);
     }
 
     private boolean isOwnRecord(Employee currentUser, String employeeId) {

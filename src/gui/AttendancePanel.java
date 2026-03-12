@@ -8,10 +8,13 @@ import service.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.List;
 
 public class AttendancePanel extends JPanel {
@@ -24,8 +27,11 @@ public class AttendancePanel extends JPanel {
     private static final Color MUTED_TEXT = new Color(130, 130, 130);
     private static final Color TABLE_BORDER = new Color(220, 220, 220);
     private static final Color TABLE_SELECT_BG = new Color(232, 239, 252);
+    private static final Color FIELD_BORDER = new Color(180, 180, 180);
+    private static final String SEARCH_PLACEHOLDER = "Employee ID";
 
     private final AttendanceService attendanceService;
+    private final Employee currentUser;
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel contentPanel = new JPanel(cardLayout);
@@ -36,20 +42,20 @@ public class AttendancePanel extends JPanel {
     private JLabel emptyStateLabel;
 
     private JButton btnUpdate;
+    private JButton btnDelete;
     private JButton btnTimeIn;
     private JButton btnTimeOut;
     private JButton btnRefresh;
-
-    private AttendanceFormPanel formPanel;
-    private AttendanceRecord selectedRecordForUpdate;
-    
-    private final Employee currentUser;
-    private JTextField txtEmployeeFilter;
     private JButton btnViewAll;
     private JButton btnViewMine;
 
+    private JTextField txtEmployeeFilter;
+
+    private AttendanceFormPanel formPanel;
+    private AttendanceRecord selectedRecordForUpdate;
+
     public AttendancePanel() {
-        this(new AttendanceService(new repository.CsvAttendanceRepository()));
+        this(new AttendanceService(new CsvAttendanceRepository()));
     }
 
     public AttendancePanel(AttendanceService attendanceService) {
@@ -69,7 +75,8 @@ public class AttendancePanel extends JPanel {
 
         loadAttendanceHistory();
         showListPage();
-}
+    }
+
     private JPanel buildListPage() {
         JPanel wrapper = new JPanel(new BorderLayout(0, 16));
         wrapper.setOpaque(false);
@@ -83,15 +90,22 @@ public class AttendancePanel extends JPanel {
         top.setOpaque(false);
         top.setBorder(new EmptyBorder(0, 0, 6, 0));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel left = new JPanel();
         left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        boolean hrCanManageAll = attendanceService.canManageAllAttendance(currentUser);
+        boolean canViewBroader = attendanceService.canViewBroaderAttendance(currentUser);
+        boolean canUpdateAny = attendanceService.canUpdateAnyAttendance(currentUser);
 
-        if (hrCanManageAll) {
-            txtEmployeeFilter = new JTextField(12);
-            txtEmployeeFilter.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            txtEmployeeFilter.setPreferredSize(new Dimension(140, 40));
+        if (canViewBroader) {
+            txtEmployeeFilter = createSearchField();
+
+            JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            searchRow.setOpaque(false);
+            searchRow.add(txtEmployeeFilter);
+
+            JPanel viewButtonsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+            viewButtonsRow.setOpaque(false);
 
             btnViewMine = createActionButton("My Records");
             btnViewAll = createActionButton("View All");
@@ -99,26 +113,34 @@ public class AttendancePanel extends JPanel {
             btnViewMine.addActionListener(e -> loadMyAttendanceHistory());
             btnViewAll.addActionListener(e -> loadAttendanceHistory());
 
-            left.add(new JLabel("Employee ID:"));
-            left.add(txtEmployeeFilter);
-            left.add(btnViewMine);
-            left.add(btnViewAll);
+            viewButtonsRow.add(btnViewMine);
+            viewButtonsRow.add(btnViewAll);
+
+            left.add(searchRow);
+            left.add(Box.createVerticalStrut(8));
+            left.add(viewButtonsRow);
         }
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         right.setOpaque(false);
 
         btnUpdate = createActionButton("Update");
+        btnDelete = createActionButton("Delete");
         btnTimeIn = createActionButton("Time In");
         btnTimeOut = createActionButton("Time Out");
         btnRefresh = createActionButton("Refresh");
 
-        right.add(btnUpdate);
+        if (canUpdateAny) {
+            right.add(btnUpdate);
+            right.add(btnDelete);
+        }
+
         right.add(btnTimeIn);
         right.add(btnTimeOut);
         right.add(btnRefresh);
 
         btnUpdate.addActionListener(e -> openUpdateForm());
+        btnDelete.addActionListener(e -> deleteSelectedAttendance());
         btnTimeIn.addActionListener(e -> handleTimeIn());
         btnTimeOut.addActionListener(e -> handleTimeOut());
         btnRefresh.addActionListener(e -> refreshBasedOnRole());
@@ -204,8 +226,6 @@ public class AttendancePanel extends JPanel {
     }
 
     private void handleTimeIn() {
-        Employee currentUser = SessionManager.getCurrentUser();
-
         try {
             attendanceService.timeIn(currentUser);
             loadAttendanceHistory();
@@ -216,8 +236,6 @@ public class AttendancePanel extends JPanel {
     }
 
     private void handleTimeOut() {
-        Employee currentUser = SessionManager.getCurrentUser();
-
         try {
             attendanceService.timeOut(currentUser);
             loadAttendanceHistory();
@@ -228,6 +246,11 @@ public class AttendancePanel extends JPanel {
     }
 
     private void openUpdateForm() {
+        if (!attendanceService.canUpdateAnyAttendance(currentUser)) {
+            JOptionPane.showMessageDialog(this, "You do not have permission to update attendance records.");
+            return;
+        }
+
         int row = table.getSelectedRow();
         if (row < 0) {
             JOptionPane.showMessageDialog(this, "Please select an attendance record first.");
@@ -273,6 +296,41 @@ public class AttendancePanel extends JPanel {
         }
     }
 
+    private void deleteSelectedAttendance() {
+        if (!attendanceService.canDeleteAnyAttendance(currentUser)) {
+            JOptionPane.showMessageDialog(this, "You do not have permission to delete attendance records.");
+            return;
+        }
+
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Please select an attendance record first.");
+            return;
+        }
+
+        String employeeId = String.valueOf(model.getValueAt(row, 0));
+        String date = String.valueOf(model.getValueAt(row, 1));
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Delete this attendance record?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            attendanceService.deleteAttendance(currentUser, employeeId, date);
+            loadAttendanceHistory();
+            JOptionPane.showMessageDialog(this, "Attendance deleted successfully.");
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Delete Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void loadAttendanceHistory() {
         model.setRowCount(0);
 
@@ -295,34 +353,6 @@ public class AttendancePanel extends JPanel {
         refreshEmptyState();
     }
 
-    private void showListPage() {
-        selectedRecordForUpdate = null;
-        cardLayout.show(contentPanel, LIST_CARD);
-    }
-
-    private JButton createActionButton(String text) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(130, 46));
-        button.setBackground(Color.BLACK);
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder());
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    private void refreshEmptyState() {
-        if (model.getRowCount() == 0) {
-            tableScrollPane.setViewportView(emptyStateLabel);
-        } else {
-            tableScrollPane.setViewportView(table);
-        }
-
-        tableScrollPane.revalidate();
-        tableScrollPane.repaint();
-    }
-    
     private void loadMyAttendanceHistory() {
         model.setRowCount(0);
 
@@ -331,8 +361,7 @@ public class AttendancePanel extends JPanel {
             return;
         }
 
-        List<AttendanceRecord> records =
-                attendanceService.getAttendanceByEmployee(currentUser.getId());
+        List<AttendanceRecord> records = attendanceService.getAttendanceByEmployee(currentUser.getId());
 
         for (AttendanceRecord record : records) {
             model.addRow(new Object[]{
@@ -352,32 +381,73 @@ public class AttendancePanel extends JPanel {
             return;
         }
 
-        if (attendanceService.canManageAllAttendance(currentUser)
-                && txtEmployeeFilter != null
-                && txtEmployeeFilter.getText() != null
-                && !txtEmployeeFilter.getText().trim().isEmpty()) {
-
-            model.setRowCount(0);
-
-            List<AttendanceRecord> records =
-                    attendanceService.getVisibleAttendanceByEmployee(
-                            currentUser,
-                            txtEmployeeFilter.getText().trim()
-                    );
-
-            for (AttendanceRecord record : records) {
-                model.addRow(new Object[]{
-                        record.getEmployeeId(),
-                        record.getDate(),
-                        record.getLogIn(),
-                        record.getLogOut()
-                });
-            }
-
-            refreshEmptyState();
+        if (attendanceService.canViewBroaderAttendance(currentUser)) {
+            // Search bar intentionally not functional yet, per your note.
+            loadAttendanceHistory();
             return;
         }
 
-        loadAttendanceHistory();
+        loadMyAttendanceHistory();
+    }
+
+    private void showListPage() {
+        selectedRecordForUpdate = null;
+        cardLayout.show(contentPanel, LIST_CARD);
+    }
+
+    private JButton createActionButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(130, 46));
+        button.setBackground(Color.BLACK);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JTextField createSearchField() {
+        JTextField field = new JTextField(14);
+        field.setPreferredSize(new Dimension(180, 40));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setForeground(Color.GRAY);
+        field.setText(SEARCH_PLACEHOLDER);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(FIELD_BORDER, 1, true),
+                new EmptyBorder(0, 12, 0, 12)
+        ));
+        field.setBackground(Color.WHITE);
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (SEARCH_PLACEHOLDER.equals(field.getText())) {
+                    field.setText("");
+                    field.setForeground(TEXT_DARK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.getText().trim().isEmpty()) {
+                    field.setText(SEARCH_PLACEHOLDER);
+                    field.setForeground(Color.GRAY);
+                }
+            }
+        });
+
+        return field;
+    }
+
+    private void refreshEmptyState() {
+        if (model.getRowCount() == 0) {
+            tableScrollPane.setViewportView(emptyStateLabel);
+        } else {
+            tableScrollPane.setViewportView(table);
+        }
+
+        tableScrollPane.revalidate();
+        tableScrollPane.repaint();
     }
 }

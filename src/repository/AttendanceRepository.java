@@ -18,4 +18,5 @@ public interface AttendanceRepository {
     AttendanceRecord findByEmployeeIdAndDate(String employeeId, String date);
     void add(AttendanceRecord record);
     void update(AttendanceRecord record);
+    void delete(String employeeId, String date);
 }

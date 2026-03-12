@@ -37,6 +37,7 @@ public enum Permission {
     VIEW_ATTENDANCE,
     VIEW_OWN_ATTENDANCE,
     EDIT_ATTENDANCE,
+    DELETE_ATTENDANCE,
 
     // System / IT / Admin
     ACCESS_SYSTEM_TOOLS,
