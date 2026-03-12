@@ -35,10 +35,13 @@ public class EmployeeLeavesPanel extends JPanel {
     private JTable table;
     private DefaultTableModel model;
     private LeaveFormPanel formPanel;
+    private JLabel emptyStateLabel;
+    private JScrollPane tableScrollPane;
+
 
     private Leave workingLeave;
     private boolean editMode = false;
-
+    
     public EmployeeLeavesPanel(LeaveService leaveService,
                                String currentEmployeeId,
                                String currentEmployeeName,
@@ -64,6 +67,7 @@ public class EmployeeLeavesPanel extends JPanel {
     private JPanel buildListPage() {
         JPanel outer = new JPanel(new BorderLayout(0, 16));
         outer.setOpaque(false);
+        outer.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
@@ -111,6 +115,7 @@ public class EmployeeLeavesPanel extends JPanel {
         table.setForeground(new Color(25, 25, 25));
         table.setSelectionBackground(new Color(232, 239, 252));
         table.setSelectionForeground(new Color(25, 25, 25));
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         JTableHeader header = table.getTableHeader();
         header.setBackground(Color.BLACK);
@@ -122,6 +127,8 @@ public class EmployeeLeavesPanel extends JPanel {
         DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer();
         cellRenderer.setBorder(new EmptyBorder(0, 10, 0, 10));
         cellRenderer.setVerticalAlignment(SwingConstants.CENTER);
+        cellRenderer.setForeground(new Color(25, 25, 25));
+
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
@@ -133,11 +140,16 @@ public class EmployeeLeavesPanel extends JPanel {
         table.getColumnModel().getColumn(4).setPreferredWidth(320);
         table.getColumnModel().getColumn(5).setPreferredWidth(120);
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
 
-        tableCard.add(scrollPane, BorderLayout.CENTER);
+        emptyStateLabel = new JLabel("No leave requests found.", SwingConstants.CENTER);
+        emptyStateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        emptyStateLabel.setForeground(new Color(130, 130, 130));
+        emptyStateLabel.setBorder(new EmptyBorder(30, 20, 30, 20));
+
+        tableCard.add(tableScrollPane, BorderLayout.CENTER);
 
         outer.add(actions, BorderLayout.NORTH);
         outer.add(tableCard, BorderLayout.CENTER);
@@ -236,9 +248,6 @@ public class EmployeeLeavesPanel extends JPanel {
         model.setRowCount(0);
 
         List<Leave> leaves = leaveService.getByEmployeeId(currentEmployeeId);
-        if (leaves.isEmpty()) {
-            return;
-        }
 
         for (Leave leave : leaves) {
             model.addRow(new Object[]{
@@ -250,6 +259,23 @@ public class EmployeeLeavesPanel extends JPanel {
                     leave.getStatus()
             });
         }
+
+        refreshEmptyState();
+    }
+
+    private void refreshEmptyState() {
+        if (tableScrollPane == null) {
+            return;
+        }
+
+        if (model.getRowCount() == 0) {
+            tableScrollPane.setViewportView(emptyStateLabel);
+        } else {
+            tableScrollPane.setViewportView(table);
+        }
+
+        tableScrollPane.revalidate();
+        tableScrollPane.repaint();
     }
 
     private void onDelete() {
