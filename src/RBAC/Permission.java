@@ -6,32 +6,43 @@ package RBAC;
 
 /**
  *
- * @author trisha
+ * @author rhynnegracelle
  */
 public enum Permission {
-    // Employee Management
-    VIEW_EMPLOYEE,
+
+    // EMPLOYEE ACCESS - GENERAL
+    VIEW_EMPLOYEE,                 // Backward-compatible general employee view
+    VIEW_EMPLOYEE_LIST,
+    VIEW_EMPLOYEE_BASIC_DETAILS,
+    VIEW_EMPLOYEE_PERSONAL_DETAILS,
+    VIEW_EMPLOYEE_GOVERNMENT_IDS,
+    VIEW_EMPLOYEE_COMPENSATION,
+    VIEW_OWN_EMPLOYEE_PROFILE,
+
+    // EMPLOYEE MANAGEMENT
     ADD_EMPLOYEE,
     EDIT_EMPLOYEE,
     DELETE_EMPLOYEE,
 
-    // Payroll
+    // PAYROLL
     VIEW_PAYROLL,
     PROCESS_PAYROLL,
+    VIEW_OWN_PAYROLL,
 
-    // Payslip
+    // PAYSLIP
     GENERATE_PAYSLIP,
     VIEW_PAYSLIP,
     VIEW_OWN_PAYSLIP,
 
-    // Leave
+    // LEAVE
     SUBMIT_LEAVE,
     VIEW_LEAVE_REQUESTS,
     VIEW_LEAVE_HISTORY,
+    VIEW_OWN_LEAVE_HISTORY,
     APPROVE_LEAVE,
     REJECT_LEAVE,
 
-    // Attendance
+    // ATTENDANCE
     TIME_IN,
     TIME_OUT,
     VIEW_ATTENDANCE,
@@ -39,7 +50,7 @@ public enum Permission {
     EDIT_ATTENDANCE,
     DELETE_ATTENDANCE,
 
-    // System / IT / Admin
+    // SYSTEM / IT / ADMIN
     ACCESS_SYSTEM_TOOLS,
     MANAGE_USERS,
     RESET_PASSWORD

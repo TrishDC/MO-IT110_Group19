@@ -8,16 +8,19 @@
  * @author Rhynne Gracelle
  */
 
-
 package gui;
 
 import model.Employee;
 
+import RBAC.Permission;
+
 import repository.EmployeeRepository;
 import repository.CsvLeaveRepository;
 
-import service.SessionManager;
+
+import service.AuthorizationService;
 import service.LeaveService;
+import service.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -58,9 +61,12 @@ public class MainDashboardFrame extends JFrame {
 
         this.cardLayout = new CardLayout();
         this.contentPanel = new JPanel(cardLayout);
+        this.contentPanel.setOpaque(false);
 
         initFrame();
         initCards();
+
+        // Choose your default landing page here
         showCard(CARD_EMPLOYEES);
     }
 
@@ -113,8 +119,11 @@ public class MainDashboardFrame extends JFrame {
 
         topSection.add(createNavLink("Dashboard", () -> showCard(CARD_DASHBOARD)));
         topSection.add(Box.createVerticalStrut(22));
-        topSection.add(createNavLink("Employees", () -> showCard(CARD_EMPLOYEES)));
-        topSection.add(Box.createVerticalStrut(22));
+        if (AuthorizationService.hasPermission(currentUser, Permission.VIEW_EMPLOYEE_LIST)
+                || AuthorizationService.hasPermission(currentUser, Permission.VIEW_EMPLOYEE)) {
+            topSection.add(createNavLink("Employees", () -> showCard(CARD_EMPLOYEES)));
+            topSection.add(Box.createVerticalStrut(22));
+        }
         topSection.add(createNavLink("Payroll", () -> showCard(CARD_PAYROLL)));
         topSection.add(Box.createVerticalStrut(22));
         topSection.add(createNavLink("Leave", () -> showCard(CARD_LEAVE)));
@@ -231,21 +240,45 @@ public class MainDashboardFrame extends JFrame {
     }
 
     private void initCards() {
-        contentPanel.add(new DashboardPanel(), CARD_DASHBOARD);
-        contentPanel.add(new EmployeeManagementPanel(employeeRepo, employeeCsvPath, currentUser), CARD_EMPLOYEES);
-        contentPanel.add(new PayrollPanel(), CARD_PAYROLL);
+        contentPanel.add(createDashboardCard(), CARD_DASHBOARD);
+        contentPanel.add(createEmployeesCard(), CARD_EMPLOYEES);
+        contentPanel.add(createPayrollCard(), CARD_PAYROLL);
+        contentPanel.add(createLeaveCard(), CARD_LEAVE);
+        contentPanel.add(createAttendanceCard(), CARD_ATTENDANCE);
+    }
 
+    private JPanel createDashboardCard() {
+        return new DashboardPanel();
+    }
+
+    private JPanel createEmployeesCard() {
+        return new EmployeeManagementPanel(employeeRepo, employeeCsvPath, currentUser);
+    }
+
+    private JPanel createPayrollCard() {
+        return new PayrollPanel(employeeRepo, employeeCsvPath, currentUser);
+    }
+
+    private JPanel createLeaveCard() {
         LeaveService leaveService = new LeaveService(new CsvLeaveRepository());
 
-        contentPanel.add(new EmployeeLeavesPanel(
-                leaveService,
-                safe(currentUser.getId()),
-                (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim(),
-                "N/A",
-                safe(currentUser.getPosition())
-        ), CARD_LEAVE);
+        String employeeId = currentUser != null ? safe(currentUser.getId()) : "";
+        String employeeName = currentUser != null
+                ? (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim()
+                : "";
+        String position = currentUser != null ? safe(currentUser.getPosition()) : "";
 
-        contentPanel.add(new AttendancePanel(), CARD_ATTENDANCE);
+        return new EmployeeLeavesPanel(
+                leaveService,
+                employeeId,
+                employeeName,
+                "N/A",
+                position
+        );
+    }
+
+    private JPanel createAttendanceCard() {
+        return new AttendancePanel();
     }
 
     private void showCard(String cardName) {
