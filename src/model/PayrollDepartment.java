@@ -23,10 +23,12 @@ public String toString() {
 
     @Override
     public BigDecimal calculateSalary() {
-         return getBasicSalary()
-                .add(getRiceSubsidy())
-                .add(getPhoneAllowance())
-                .add(getClothingAllowance());
+     throw new UnsupportedOperationException("Not supported yet."); 
+    }
+
+    @Override
+    public BigDecimal getTotalAllowance() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     

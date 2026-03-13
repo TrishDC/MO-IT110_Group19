@@ -36,7 +36,7 @@ public interface IEmployee {
      String getPosition();
      String getSupervisor() ;
 
- 
+    BigDecimal getTotalAllowance();
 
 }
 }

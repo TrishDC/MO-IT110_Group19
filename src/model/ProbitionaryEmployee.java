@@ -22,14 +22,20 @@ public String toString() {
     
 }
 
-    @Override
+@Override
     public BigDecimal calculateSalary() {
-        return getHourlyRate().multiply(new BigDecimal("160"));
+        // Probationary employees only get the basic salary
+        return getBasicSalary(); 
     }
 
     @Override
     public String getEmployeeType() {
         return "Probationary";
+    }
+
+    @Override
+    public BigDecimal getTotalAllowance() {
+       return BigDecimal.ZERO; 
     }
     
 }

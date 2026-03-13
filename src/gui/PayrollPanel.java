@@ -15,6 +15,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.time.YearMonth;
 import java.util.List;
@@ -27,7 +28,7 @@ public class PayrollPanel extends JPanel {
     private final DefaultTableModel model;
     private JButton viewSalaryBtn;
 
-    
+    // Design Constants
     private static final Color TABLE_HEADER_BG = new Color(245, 245, 245);
     private static final Color TABLE_BORDER = new Color(220, 220, 220);
     private static final Color SELECT_BG = new Color(225, 235, 255);
@@ -39,8 +40,9 @@ public class PayrollPanel extends JPanel {
         setLayout(new BorderLayout());
         setOpaque(false);
 
-   
-        String[] columns = {"ID", "Basic Salary", "Hourly Rate", "Allowances", "Deductions", "Net Pay",};
+        // Columns defined to match our loop data
+        String[] columns = {"ID", "Basic Salary", "Hourly Rate", "Allowances", "Deductions", "Net Pay"};
+        
         this.model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -48,21 +50,60 @@ public class PayrollPanel extends JPanel {
         
         this.table = createPayrollTable();
 
-       
-
-
-        
+        // RBAC: If user isn't allowed to see allowances, hide that column
         if (!(currentUser instanceof RegularEmployee)) {
-            safeHideColumnByIndex(3);
+            safeHideColumnByIndex(3); 
         }
 
         add(createContentArea(), BorderLayout.CENTER);
         loadTable();
     }
 
-    /**
-     * Finds a column by its Model Index and removes it from the User View.
-     */
+    private void loadTable() {
+        model.setRowCount(0);
+        try {
+            List<Employee> employees = repo.loadAll();
+            for (Employee emp : employees) {
+                
+                // 1. Get Earnings (Polymorphism at work)
+                // Regular returns Basic + Allowances. Probationary returns Hourly * 160.
+                BigDecimal gross = emp.calculateSalary(); 
+                BigDecimal basic = emp.getBasicSalary();
+                BigDecimal allowances = emp.getTotalAllowance();
+
+                // 2. Compute Deductions using the SalaryCalculator
+                BigDecimal sss = SalaryCalculator.computeSssDeduction(gross);
+                BigDecimal phil = SalaryCalculator.computePhilHealthDeduction(gross);
+                BigDecimal pag = SalaryCalculator.computePagIbigDeduction(gross);
+                
+                // We use basic salary for tax calculation to avoid taxing non-taxable allowances
+                BigDecimal tax = SalaryCalculator.computeWithholdingTax(basic, sss, phil, pag);
+                
+                BigDecimal totalDed = sss.add(phil).add(pag).add(tax);
+                
+                // 3. Final Net Pay Calculation
+                BigDecimal netPay = gross.subtract(totalDed);
+
+                // Add to table model
+                model.addRow(new Object[]{
+                    emp.getId(),
+                    formatCurrency(basic),
+                    formatCurrency(emp.getHourlyRate()),
+                    formatCurrency(allowances),
+                    formatCurrency(totalDed),
+                    formatCurrency(netPay)
+                });
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error loading payroll: " + e.getMessage());
+        }
+    }
+
+    private String formatCurrency(BigDecimal amount) {
+        if (amount == null) return "0.00";
+        return amount.setScale(2, RoundingMode.HALF_UP).toString();
+    }
+
     private void safeHideColumnByIndex(int modelIndex) {
         try {
             for (int i = 0; i < table.getColumnCount(); i++) {
@@ -91,7 +132,6 @@ public class PayrollPanel extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         toolbar.add(title, BorderLayout.WEST);
 
-        // Black View Button
         viewSalaryBtn = new JButton("View Salary Record");
         viewSalaryBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         viewSalaryBtn.setBackground(Color.BLACK);
@@ -100,7 +140,7 @@ public class PayrollPanel extends JPanel {
         viewSalaryBtn.setBorderPainted(false);
         viewSalaryBtn.setPreferredSize(new Dimension(180, 40));
 
-        // Check RBAC Permission
+        // Permission Check
         viewSalaryBtn.setVisible(AuthorizationService.hasPermission(currentUser, Permission.VIEW_PAYROLL));
         viewSalaryBtn.setEnabled(false);
         viewSalaryBtn.addActionListener(e -> openSalaryDialog());
@@ -118,7 +158,6 @@ public class PayrollPanel extends JPanel {
         pTable.setShowGrid(false);
         pTable.setSelectionBackground(SELECT_BG);
 
-  
         JTableHeader header = pTable.getTableHeader();
         header.setPreferredSize(new Dimension(0, 40));
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
@@ -131,7 +170,6 @@ public class PayrollPanel extends JPanel {
                 return lbl;
             }
         });
-
 
         pTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
@@ -151,45 +189,14 @@ public class PayrollPanel extends JPanel {
         return pTable;
     }
 
-    private void loadTable() {
-        model.setRowCount(0);
-        try {
-            List<Employee> employees = repo.loadAll();
-            for (Employee emp : employees) {
-                BigDecimal gross = SalaryCalculator.computeMonthlyPay(emp, YearMonth.now());
-                
-                
-                BigDecimal allowances = BigDecimal.ZERO;
-                String typeFlag = "PROBATIONARY";
-
-                if (emp instanceof RegularEmployee) {
-                    allowances = emp.getRiceSubsidy().add(emp.getPhoneAllowance()).add(emp.getClothingAllowance());
-                    typeFlag = "REGULAR";
-                }
-
-                BigDecimal sss = SalaryCalculator.computeSssDeduction(gross);
-                BigDecimal phil = SalaryCalculator.computePhilHealthDeduction(gross);
-                BigDecimal pag = SalaryCalculator.computePagIbigDeduction(gross);
-                BigDecimal tax = SalaryCalculator.computeWithholdingTax(gross, sss, phil, pag);
-                BigDecimal totalDed = sss.add(phil).add(pag).add(tax);
-
-                model.addRow(new Object[]{
-                    emp.getId(),
-                    emp.getBasicSalary().setScale(2),
-                    emp.getHourlyRate().setScale(2),
-                    allowances.setScale(2), // Displays 0.00 for non-Regulars
-                    totalDed.setScale(2),
-                    gross.subtract(totalDed).setScale(2),
-                    typeFlag
-                });
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-    }
-
     private void openSalaryDialog() {
         int r = table.getSelectedRow();
         if (r < 0) return;
-        String id = (String) model.getValueAt(r, 0);
+        
+        // Convert view index to model index to get correct ID even if filtered/sorted
+        int modelRow = table.convertRowIndexToModel(r);
+        String id = (String) model.getValueAt(modelRow, 0);
+        
         try {
             for (Employee emp : repo.loadAll()) {
                 if (emp.getId().equals(id)) {
@@ -197,6 +204,8 @@ public class PayrollPanel extends JPanel {
                     return;
                 }
             }
-        } catch (IOException ex) { ex.printStackTrace(); }
+        } catch (IOException ex) { 
+            ex.printStackTrace(); 
+        }
     }
 }

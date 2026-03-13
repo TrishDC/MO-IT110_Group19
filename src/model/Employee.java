@@ -297,6 +297,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public abstract BigDecimal calculateSalary();
+    public abstract BigDecimal getTotalAllowance();
 
     public String getEmployeeType() {
         return "Employee";

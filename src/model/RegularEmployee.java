@@ -21,13 +21,18 @@ public String toString() {
     return "Regular Employee"+getPosition()+ getFirstName() + " " + getLastName();
 }
 
-    @Override
-    public BigDecimal calculateSalary() {
-        return getBasicSalary()
-                .add(getRiceSubsidy())
-                .add(getPhoneAllowance())
-                .add(getClothingAllowance());
-    }
+  @Override
+public BigDecimal calculateSalary() {
+    return getBasicSalary().add(getTotalAllowance());
+}
+
+@Override
+public BigDecimal getTotalAllowance() {
+  
+    return getRiceSubsidy()
+            .add(getPhoneAllowance())
+            .add(getClothingAllowance());
+}
     
      @Override
     public String getEmployeeType() {

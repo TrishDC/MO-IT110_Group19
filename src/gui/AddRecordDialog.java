@@ -183,6 +183,11 @@ public class AddRecordDialog extends JDialog {
                 public BigDecimal calculateSalary() {
                     throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
                 }
+
+                @Override
+                public BigDecimal getTotalAllowance() {
+                    throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+                }
             };
 
             e.setAddress(addressField.getText().trim());
