@@ -13,7 +13,7 @@ public class HRDepartment extends RegularEmployee {
               clothingAllowance, grossSemiMonthlyRate, hourlyRate);
     }
 
-
+//Overloading
     public void approveLeaveRequest(EmployeeLeaveRequest request) {
         if (request == null) return;
         request.setStatus("Approved");
@@ -44,7 +44,7 @@ public class HRDepartment extends RegularEmployee {
         request.setNotes("Rejected by HR: " + this.getFirstName());
         System.out.println("Leave " + request.getLeaveId() + " rejected. Reason: " + reason);
     }
-
+    
   
 
     @Override

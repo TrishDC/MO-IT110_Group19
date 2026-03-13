@@ -15,18 +15,17 @@ public class ViewSalaryRecordDialog extends JDialog {
         super(owner, "Salary Record: " + employee.getId(), true);
         setLayout(new BorderLayout());
 
-        // 1. CALCULATIONS
-        // Use Polymorphism: calculateSalary() handles Regular (Basic+Allow) vs Prob (Hourly*160)
+        
         BigDecimal gross = employee.calculateSalary();
         BigDecimal basic = employee.getBasicSalary();
         BigDecimal allowances = employee.getTotalAllowance();
 
-        // 2. DEDUCTIONS
+
         BigDecimal sss = SalaryCalculator.computeSssDeduction(gross);
         BigDecimal philHealth = SalaryCalculator.computePhilHealthDeduction(gross);
         BigDecimal pagIbig = SalaryCalculator.computePagIbigDeduction(gross);
         
-        // FIX: Tax is calculated on Basic minus deductions (Allowances are excluded)
+       
         BigDecimal tax = SalaryCalculator.computeWithholdingTax(basic, sss, philHealth, pagIbig);
         
         BigDecimal totalDeductions = sss.add(philHealth).add(pagIbig).add(tax);
@@ -35,16 +34,16 @@ public class ViewSalaryRecordDialog extends JDialog {
         JPanel content = new JPanel(new GridLayout(0, 2, 10, 10));
         content.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Header Info
+
         addEntry(content, "Employee Name:", employee.getFirstName() + " " + employee.getLastName());
         addEntry(content, "Type:", employee.getEmployeeType());
         
         content.add(new JSeparator()); content.add(new JSeparator());
 
-        // Earnings Section
+
         addEntry(content, "Basic Salary:", "PHP " + basic.setScale(2, RoundingMode.HALF_UP).toPlainString());
         
-        // Only show individual allowances if they exist (Regular Employees)
+    
         if (allowances.compareTo(BigDecimal.ZERO) > 0) {
             addEntry(content, "Rice Subsidy:", "+ " + employee.getRiceSubsidy().toPlainString());
             addEntry(content, "Phone Allowance:", "+ " + employee.getPhoneAllowance().toPlainString());
@@ -58,7 +57,7 @@ public class ViewSalaryRecordDialog extends JDialog {
 
         content.add(new JSeparator()); content.add(new JSeparator());
 
-        // Deductions Section
+        
         addEntry(content, "SSS Deduction:", "- " + sss.toPlainString());
         addEntry(content, "PhilHealth:", "- " + philHealth.toPlainString());
         addEntry(content, "Pag-IBIG:", "- " + pagIbig.toPlainString());
@@ -71,7 +70,7 @@ public class ViewSalaryRecordDialog extends JDialog {
 
         content.add(new JSeparator()); content.add(new JSeparator());
 
-        // Net Pay Section
+   
         JLabel netLabel = new JLabel("NET PAY:");
         netLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         content.add(netLabel);
