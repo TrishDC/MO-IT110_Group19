@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package gui;
 
 import RBAC.Permission;
@@ -21,21 +17,20 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 public class EmployeeManagementPanel extends JPanel {
 
     private static final String CARD_LIST = "LIST";
     private static final String CARD_DETAILS = "DETAILS";
-    private static final String CARD_ADD = "ADD";
-    private static final String CARD_UPDATE = "UPDATE";
 
     private static final String[] TABLE_COLUMNS = {
             "Employee No.", "Name", "Status", "Position", "Immediate Supervisor", "Role"
     };
 
     private static final Color BORDER = new Color(220, 220, 220);
-    private static final Color TEXT_DARK = new Color(25, 25, 25);
-    private static final Color SELECT_BG = new Color(232, 239, 252);
 
     private final EmployeeRepository repo;
     private final Path employeeCsvPath;
@@ -50,8 +45,6 @@ public class EmployeeManagementPanel extends JPanel {
     private final JPanel contentCardPanel = new JPanel(contentCardLayout);
 
     private EmployeeDetailsPanel detailsPanel;
-    private EmployeeFormPanel addFormPanel;
-    private EmployeeFormPanel updateFormPanel;
 
     private JButton searchBtn;
     private JButton addBtn;
@@ -86,19 +79,17 @@ public class EmployeeManagementPanel extends JPanel {
     }
 
     private JPanel createMainLayout() {
-        JPanel outer = new JPanel(new BorderLayout(0, 16));
+        JPanel outer = new JPanel(new BorderLayout());
         outer.setOpaque(false);
         outer.setBorder(new EmptyBorder(0, 0, 0, 0));
-
-        outer.add(createActionBar(), BorderLayout.NORTH);
         outer.add(createContentArea(), BorderLayout.CENTER);
-
         return outer;
     }
 
     private JPanel createActionBar() {
         JPanel actions = new JPanel(new BorderLayout());
         actions.setOpaque(false);
+        actions.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftActions.setOpaque(false);
@@ -138,30 +129,33 @@ public class EmployeeManagementPanel extends JPanel {
         contentCardPanel.add(createListCard(), CARD_LIST);
 
         detailsPanel = new EmployeeDetailsPanel(this::showListCard);
+        detailsPanel.setActionListener(new EmployeeDetailsPanel.EmployeeDetailsActionListener() {
+            @Override
+            public void onCreate(EmployeeDetailsPanel panel) {
+                handleCreateFromDetails(panel);
+            }
+
+            @Override
+            public void onUpdate(EmployeeDetailsPanel panel) {
+                handleUpdateFromDetails(panel);
+            }
+        });
         contentCardPanel.add(detailsPanel, CARD_DETAILS);
-
-        addFormPanel = new EmployeeFormPanel(
-                "Add Employee",
-                repo,
-                null,
-                this::handleFormSaved,
-                this::showListCard
-        );
-        contentCardPanel.add(addFormPanel, CARD_ADD);
-
-        updateFormPanel = new EmployeeFormPanel(
-                "Update Employee",
-                repo,
-                null,
-                this::handleFormSaved,
-                this::showListCard
-        );
-        contentCardPanel.add(updateFormPanel, CARD_UPDATE);
 
         return contentCardPanel;
     }
 
     private JPanel createListCard() {
+        JPanel listCard = new JPanel(new BorderLayout(0, 16));
+        listCard.setOpaque(false);
+
+        listCard.add(createActionBar(), BorderLayout.NORTH);
+        listCard.add(createTableCard(), BorderLayout.CENTER);
+
+        return listCard;
+    }
+
+    private JPanel createTableCard() {
         JPanel tableCard = new JPanel(new BorderLayout());
         tableCard.setBackground(Color.WHITE);
         tableCard.setBorder(BorderFactory.createCompoundBorder(
@@ -255,13 +249,11 @@ public class EmployeeManagementPanel extends JPanel {
         employeeTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         employeeTable.setFillsViewportHeight(true);
 
-        // Body colors
         employeeTable.setBackground(new Color(245, 245, 245));
         employeeTable.setForeground(new Color(35, 35, 35));
         employeeTable.setSelectionBackground(new Color(200, 212, 232));
         employeeTable.setSelectionForeground(new Color(25, 25, 25));
 
-        // Grid styling
         employeeTable.setGridColor(new Color(235, 235, 235));
         employeeTable.setShowVerticalLines(false);
         employeeTable.setShowHorizontalLines(true);
@@ -433,29 +425,21 @@ public class EmployeeManagementPanel extends JPanel {
         contentCardLayout.show(contentCardPanel, CARD_LIST);
     }
 
-    private void showDetailsCard(Employee employee) {
+    private void showDetailsCard(
+            Employee employee,
+            EmployeeDetailsPanel.Mode mode,
+            boolean showPersonalDetails,
+            boolean showGovernmentIds,
+            boolean showCompensation
+    ) {
         detailsPanel.displayEmployee(
                 employee,
-                canViewPersonalDetails(),
-                canViewGovernmentIds(),
-                canViewCompensation()
+                showPersonalDetails,
+                showGovernmentIds,
+                showCompensation
         );
+        detailsPanel.setMode(mode);
         contentCardLayout.show(contentCardPanel, CARD_DETAILS);
-    }
-
-    private void showAddCard() {
-        addFormPanel.setEmployee(null);
-        contentCardLayout.show(contentCardPanel, CARD_ADD);
-    }
-
-    private void showUpdateCard(Employee employee) {
-        updateFormPanel.setEmployee(employee);
-        contentCardLayout.show(contentCardPanel, CARD_UPDATE);
-    }
-
-    private void handleFormSaved() {
-        loadTable();
-        showListCard();
     }
 
     private void handleAddEmployee() {
@@ -463,7 +447,14 @@ public class EmployeeManagementPanel extends JPanel {
             showAccessDenied();
             return;
         }
-        showAddCard();
+
+        showDetailsCard(
+                null,
+                EmployeeDetailsPanel.Mode.CREATE,
+                true,
+                true,
+                true
+        );
     }
 
     private void handleUpdateEmployee() {
@@ -477,7 +468,33 @@ public class EmployeeManagementPanel extends JPanel {
             return;
         }
 
-        showUpdateCard(employee);
+        showDetailsCard(
+                employee,
+                EmployeeDetailsPanel.Mode.UPDATE,
+                canViewPersonalDetails(),
+                canViewGovernmentIds(),
+                canViewCompensation()
+        );
+    }
+
+    private void handleViewEmployee() {
+        if (!canViewEmployeeDetails()) {
+            showAccessDenied();
+            return;
+        }
+
+        Employee employee = getSelectedEmployee();
+        if (employee == null) {
+            return;
+        }
+
+        showDetailsCard(
+                employee,
+                EmployeeDetailsPanel.Mode.VIEW,
+                canViewPersonalDetails(),
+                canViewGovernmentIds(),
+                canViewCompensation()
+        );
     }
 
     private void handleDeleteEmployee() {
@@ -522,18 +539,248 @@ public class EmployeeManagementPanel extends JPanel {
         }
     }
 
-    private void handleViewEmployee() {
-        if (!canViewEmployeeDetails()) {
-            showAccessDenied();
-            return;
+    private void handleCreateFromDetails(EmployeeDetailsPanel panel) {
+        try {
+            Employee newEmployee = buildEmployeeFromPanel(panel, null);
+
+            List<Employee> employees = repo.loadAll();
+
+            for (Employee existing : employees) {
+                if (existing.getId().equalsIgnoreCase(newEmployee.getId())) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Employee ID already exists: " + newEmployee.getId(),
+                            "Duplicate Employee ID",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+            }
+
+            employees.add(newEmployee);
+            repo.saveAll(employees);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Employee added successfully.",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            loadTable();
+            showListCard();
+
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    ex.getMessage(),
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Failed to save employee: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void handleUpdateFromDetails(EmployeeDetailsPanel panel) {
+        try {
+            Employee original = detailsPanel.getCurrentEmployee();
+
+            if (original == null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No employee is selected for update.",
+                        "Update Error",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            Employee updatedEmployee = buildEmployeeFromPanel(panel, original);
+
+            List<Employee> employees = repo.loadAll();
+            List<Employee> updatedList = new ArrayList<>();
+
+            for (Employee emp : employees) {
+                if (emp.getId().equals(original.getId())) {
+                    updatedList.add(updatedEmployee);
+                } else {
+                    updatedList.add(emp);
+                }
+            }
+
+            repo.saveAll(updatedList);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Employee updated successfully.",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            loadTable();
+            showListCard();
+
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    ex.getMessage(),
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Failed to update employee: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+    
+    private Employee buildEmployeeFromPanel(EmployeeDetailsPanel panel, Employee existingEmployee) {
+        String id = requireValue(panel.getEmployeeIdInput(), "Employee No.");
+        String firstName = requireValue(panel.getFirstNameInput(), "First Name");
+        String lastName = requireValue(panel.getLastNameInput(), "Last Name");
+        LocalDate birthDate = parseBirthDate(panel.getBirthDateInput());
+
+        BigDecimal basicSalary = parseMoney(panel.getBasicSalaryInput(), "Basic Salary");
+        BigDecimal riceSubsidy = parseMoney(panel.getRiceSubsidyInput(), "Rice Subsidy");
+        BigDecimal phoneAllowance = parseMoney(panel.getPhoneAllowanceInput(), "Phone Allowance");
+        BigDecimal clothingAllowance = parseMoney(panel.getClothingAllowanceInput(), "Clothing Allowance");
+        BigDecimal grossSemiMonthly = parseMoney(panel.getGrossSemiMonthlyInput(), "Gross Semi-Monthly Rate");
+        BigDecimal hourlyRate = parseMoney(panel.getHourlyRateInput(), "Hourly Rate");
+
+        Employee employee = new Employee(
+                id,
+                firstName,
+                lastName,
+                birthDate,
+                basicSalary,
+                riceSubsidy,
+                phoneAllowance,
+                clothingAllowance,
+                grossSemiMonthly,
+                hourlyRate
+        ) {
+            @Override
+            public BigDecimal calculateSalary() {
+                return getBasicSalary()
+                        .add(getRiceSubsidy())
+                        .add(getPhoneAllowance())
+                        .add(getClothingAllowance());
+            }
+
+            @Override
+            public String getEmployeeType() {
+                return existingEmployee != null
+                        ? existingEmployee.getEmployeeType()
+                        : "Employee";
+            }
+        };
+
+        employee.setStatus(panel.getStatusInput());
+        employee.setPosition(panel.getPositionInput());
+        employee.setSupervisor(panel.getSupervisorInput());
+
+        if (!panel.getAddressInput().isBlank()) {
+            employee.setAddress(panel.getAddressInput());
+        } else {
+            employee.setAddress("");
         }
 
-        Employee employee = getSelectedEmployee();
-        if (employee == null) {
-            return;
+        if (!panel.getPhoneInput().isBlank()) {
+            employee.setPhone(panel.getPhoneInput());
         }
 
-        showDetailsCard(employee);
+        if (!panel.getSssInput().isBlank()) {
+            employee.setSssNumber(panel.getSssInput());
+        }
+
+        if (!panel.getPhilHealthInput().isBlank()) {
+            employee.setPhilHealthNumber(panel.getPhilHealthInput());
+        }
+
+        if (!panel.getTinInput().isBlank()) {
+            employee.setTinNumber(panel.getTinInput());
+        }
+
+        if (!panel.getPagIbigInput().isBlank()) {
+            employee.setPagIbigNumber(panel.getPagIbigInput());
+        }
+
+        employee.setRole(resolveRoleFromInput(panel.getRoleInput(), existingEmployee));
+
+        return employee;
+    }
+
+    private String requireValue(String value, String fieldName) {
+        String cleaned = safe(value);
+        if (cleaned.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " is required.");
+        }
+        return cleaned;
+    }
+
+    private LocalDate parseBirthDate(String input) {
+        String cleaned = requireValue(input, "Birth date");
+
+        try {
+            return LocalDate.parse(cleaned, java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy"));
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Birth date must use format: Month dd, yyyy (e.g. January 05, 2000).");
+        }
+    }
+
+    private BigDecimal parseMoney(String input, String fieldName) {
+        String cleaned = safe(input).replace(",", "");
+
+        if (cleaned.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+
+        try {
+            return new BigDecimal(cleaned);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(fieldName + " must be a valid number.");
+        }
+    }
+
+    private Role resolveRoleFromInput(String roleInput, Employee existingEmployee) {
+        String roleName = safe(roleInput);
+
+        if (roleName.isBlank()) {
+            return existingEmployee != null ? existingEmployee.getRole() : null;
+        }
+
+        if (existingEmployee != null
+                && existingEmployee.getRole() != null
+                && roleName.equalsIgnoreCase(existingEmployee.getRole().getName())) {
+            return existingEmployee.getRole();
+        }
+
+        if (currentUser != null
+                && currentUser.getRole() != null
+                && roleName.equalsIgnoreCase(currentUser.getRole().getName())) {
+            return currentUser.getRole();
+        }
+
+        try {
+            for (Employee emp : repo.loadAll()) {
+                if (emp.getRole() != null && roleName.equalsIgnoreCase(emp.getRole().getName())) {
+                    return emp.getRole();
+                }
+            }
+        } catch (IOException e) {
+            // fall through
+        }
+
+        return existingEmployee != null ? existingEmployee.getRole() : null;
     }
 
     private Employee getSelectedEmployee() {

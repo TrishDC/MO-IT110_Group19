@@ -6,166 +6,524 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
 
 public class EmployeeDetailsPanel extends JPanel {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    public enum Mode {
+        VIEW,
+        UPDATE,
+        CREATE
+    }
+
+    public interface EmployeeDetailsActionListener {
+        void onCreate(EmployeeDetailsPanel panel);
+        void onUpdate(EmployeeDetailsPanel panel);
+    }
+
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("MMMM dd, yyyy");
+
+    private static final Color PAGE_BG = new Color(242, 242, 242);
+    private static final Color TEXT_PRIMARY = new Color(20, 20, 20);
+    private static final Color LINK_COLOR = new Color(95, 95, 95);
+    private static final Color FIELD_BG = Color.WHITE;
+    private static final Color FIELD_BORDER = new Color(110, 110, 110);
+    private static final Color READONLY_BG = Color.WHITE;
+    private static final Color EDITABLE_BG = Color.WHITE;
+
+    private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 18);
+    private static final Font FONT_LABEL = new Font("Segoe UI", Font.PLAIN, 13);
+    private static final Font FONT_VALUE = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font FONT_BACK = new Font("Segoe UI", Font.PLAIN, 15);
+    private static final Font FONT_BUTTON = new Font("Segoe UI", Font.PLAIN, 15);
 
     private final Runnable onBack;
+    private final JPanel formGridPanel = new JPanel(new GridBagLayout());
 
-    private final JPanel contentPanel = new JPanel(new GridBagLayout());
-    private final JLabel titleLabel = new JLabel("Employee Details");
+    private JButton submitButton;
+
+    private Mode mode = Mode.VIEW;
+    private Employee currentEmployee;
+
+    private boolean showPersonalDetails;
+    private boolean showGovernmentIds;
+    private boolean showCompensation;
+
+    private EmployeeDetailsActionListener actionListener;
+
+    private JTextField employeeNoField;
+    private JTextField firstNameField;
+    private JTextField lastNameField;
+    private JTextField statusField;
+    private JTextField positionField;
+    private JTextField supervisorField;
+    private JTextField roleField;
+
+    private JTextField birthDateField;
+    private JTextField phoneField;
+    private JTextField addressField;
+
+    private JTextField sssField;
+    private JTextField philHealthField;
+    private JTextField tinField;
+    private JTextField pagIbigField;
+
+    private JTextField basicSalaryField;
+    private JTextField riceSubsidyField;
+    private JTextField phoneAllowanceField;
+    private JTextField clothingAllowanceField;
+    private JTextField grossSemiMonthlyField;
+    private JTextField hourlyRateField;
 
     public EmployeeDetailsPanel(Runnable onBack) {
         this.onBack = onBack;
 
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                new EmptyBorder(18, 18, 18, 18)
-        ));
+        setBackground(PAGE_BG);
+        setBorder(new EmptyBorder(2, 20, 24, 34));
 
-        add(createHeader(), BorderLayout.NORTH);
-        add(createScrollableContent(), BorderLayout.CENTER);
+        add(createTopPanel(), BorderLayout.NORTH);
+        add(createScrollableCenter(), BorderLayout.CENTER);
+        add(createBottomPanel(), BorderLayout.SOUTH);
     }
 
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(0, 0, 12, 0));
-
-        JButton backButton = new JButton("Back");
-        backButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        backButton.setBackground(Color.WHITE);
-        backButton.setForeground(Color.BLACK);
-        backButton.setFocusPainted(false);
-        backButton.setPreferredSize(new Dimension(90, 40));
-        backButton.addActionListener(e -> onBack.run());
-
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-
-        header.add(backButton, BorderLayout.WEST);
-        header.add(titleLabel, BorderLayout.CENTER);
-
-        return header;
+    public void setActionListener(EmployeeDetailsActionListener actionListener) {
+        this.actionListener = actionListener;
     }
 
-    private JScrollPane createScrollableContent() {
-        contentPanel.setBackground(Color.WHITE);
+    public void setMode(Mode mode) {
+        this.mode = mode == null ? Mode.VIEW : mode;
+        applyMode();
+    }
 
-        JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(Color.WHITE);
+    public Mode getMode() {
+        return mode;
+    }
 
-        return scrollPane;
+    public Employee getCurrentEmployee() {
+        return currentEmployee;
     }
 
     public void displayEmployee(
             Employee employee,
             boolean showPersonalDetails,
             boolean showGovernmentIds,
-            boolean showCompensation
-    ) {
-        titleLabel.setText("Employee Details - " + employee.getId());
-        contentPanel.removeAll();
+            boolean showCompensation) {
 
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6, 8, 6, 8);
-        c.anchor = GridBagConstraints.WEST;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 1.0;
+        this.currentEmployee = employee;
+        this.showPersonalDetails = showPersonalDetails;
+        this.showGovernmentIds = showGovernmentIds;
+        this.showCompensation = showCompensation;
 
-        int row = 0;
+        formGridPanel.removeAll();
+        resetFieldReferences();
 
-        row = addSectionTitle(c, row, "Basic Information");
-        row = addEntry(c, row, "Employee #", employee.getId());
-        row = addEntry(c, row, "First Name", employee.getFirstName());
-        row = addEntry(c, row, "Last Name", employee.getLastName());
-        row = addEntry(c, row, "Status", employee.getStatus());
-        row = addEntry(c, row, "Position", employee.getPosition());
-        row = addEntry(c, row, "Immediate Supervisor", employee.getSupervisor());
-        row = addEntry(c, row, "Role", employee.getRole() != null ? employee.getRole().getName() : "");
+        int visibleSections = 1;
+        if (showPersonalDetails) visibleSections++;
+        if (showGovernmentIds) visibleSections++;
+        if (showCompensation) visibleSections++;
+
+        int columnIndex = 0;
+
+        addSection(createBasicSection(employee), columnIndex++, visibleSections);
 
         if (showPersonalDetails) {
-            row = addSeparator(c, row);
-            row = addSectionTitle(c, row, "Personal Details");
-            row = addEntry(c, row, "Birthday",
-                    employee.getBirthDate() != null ? employee.getBirthDate().format(DATE_FORMAT) : "");
-            row = addEntry(c, row, "Address", employee.getAddress());
-            row = addEntry(c, row, "Phone Number", employee.getPhone());
+            addSection(createPersonalSection(employee), columnIndex++, visibleSections);
         }
 
         if (showGovernmentIds) {
-            row = addSeparator(c, row);
-            row = addSectionTitle(c, row, "Government IDs");
-            row = addEntry(c, row, "SSS #", employee.getSssNumber());
-            row = addEntry(c, row, "PhilHealth #", employee.getPhilHealthNumber());
-            row = addEntry(c, row, "TIN #", employee.getTinNumber());
-            row = addEntry(c, row, "Pag-IBIG #", employee.getPagIbigNumber());
+            addSection(createGovernmentSection(employee), columnIndex++, visibleSections);
         }
 
         if (showCompensation) {
-            row = addSeparator(c, row);
-            row = addSectionTitle(c, row, "Compensation");
-            row = addEntry(c, row, "Basic Salary", formatMoney(employee.getBasicSalary()));
-            row = addEntry(c, row, "Rice Subsidy", formatMoney(employee.getRiceSubsidy()));
-            row = addEntry(c, row, "Phone Allowance", formatMoney(employee.getPhoneAllowance()));
-            row = addEntry(c, row, "Clothing Allowance", formatMoney(employee.getClothingAllowance()));
-            row = addEntry(c, row, "Gross Semi-monthly Rate", formatMoney(employee.getGrossSemiMonthlyRate()));
-            row = addEntry(c, row, "Hourly Rate", formatMoney(employee.getHourlyRate()));
+            addSection(createCompensationSection(employee), columnIndex, visibleSections);
         }
+
+        GridBagConstraints filler = new GridBagConstraints();
+        filler.gridx = 0;
+        filler.gridy = 1;
+        filler.gridwidth = visibleSections;
+        filler.weightx = 1.0;
+        filler.weighty = 1.0;
+        filler.fill = GridBagConstraints.BOTH;
+        formGridPanel.add(Box.createGlue(), filler);
+
+        applyMode();
 
         revalidate();
         repaint();
     }
 
-    private int addSectionTitle(GridBagConstraints c, int row, String title) {
-        JLabel label = new JLabel(title);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        label.setForeground(Color.BLACK);
+    private JPanel createTopPanel() {
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
 
-        c.gridx = 0;
-        c.gridy = row;
-        c.gridwidth = 2;
-        contentPanel.add(label, c);
+        JLabel backLabel = new JLabel("<html><u>Back</u></html>");
+        backLabel.setFont(FONT_BACK);
+        backLabel.setForeground(LINK_COLOR);
+        backLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        return row + 1;
+        backLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (onBack != null) {
+                    onBack.run();
+                }
+            }
+        });
+
+        topPanel.add(backLabel);
+        return topPanel;
     }
 
-    private int addSeparator(GridBagConstraints c, int row) {
-        JSeparator separator = new JSeparator();
-        c.gridx = 0;
-        c.gridy = row;
-        c.gridwidth = 2;
-        contentPanel.add(separator, c);
-        return row + 1;
+    private JScrollPane createScrollableCenter() {
+        formGridPanel.setOpaque(false);
+        formGridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        JScrollPane scrollPane = new JScrollPane(formGridPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        return scrollPane;
     }
 
-    private int addEntry(GridBagConstraints c, int row, String label, String value) {
-        JLabel left = new JLabel(label + ":");
-        left.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        left.setForeground(new Color(40, 40, 40));
+    private JPanel createBottomPanel() {
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(new EmptyBorder(18, 0, 0, 0));
 
-        JLabel right = new JLabel(value == null ? "" : value);
-        right.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        right.setForeground(new Color(70, 70, 70));
+        submitButton = new JButton("Submit");
+        submitButton.setPreferredSize(new Dimension(130, 38));
+        submitButton.setBackground(Color.BLACK);
+        submitButton.setForeground(Color.WHITE);
+        submitButton.setFont(FONT_BUTTON);
+        submitButton.setFocusPainted(false);
+        submitButton.setBorder(BorderFactory.createEmptyBorder());
+        submitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        submitButton.addActionListener(e -> handleSubmit());
 
-        c.gridwidth = 1;
-        c.gridx = 0;
-        c.gridy = row;
-        c.weightx = 0.35;
-        contentPanel.add(left, c);
+        bottomPanel.add(submitButton);
+        return bottomPanel;
+    }
 
-        c.gridx = 1;
-        c.weightx = 0.65;
-        contentPanel.add(right, c);
+    private void handleSubmit() {
+        switch (mode) {
+            case CREATE:
+                if (actionListener != null) {
+                    actionListener.onCreate(this);
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Create action triggered. Connect this panel to your service/repository layer.",
+                            "Create Employee",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                }
+                break;
 
-        return row + 1;
+            case UPDATE:
+                if (actionListener != null) {
+                    actionListener.onUpdate(this);
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Update action triggered. Connect this panel to your service/repository layer.",
+                            "Update Employee",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                }
+                break;
+
+            case VIEW:
+            default:
+                break;
+        }
+    }
+
+    private void applyMode() {
+        boolean editable = (mode == Mode.CREATE || mode == Mode.UPDATE);
+
+        setFieldEditable(employeeNoField, mode == Mode.CREATE);
+        setFieldEditable(firstNameField, editable);
+        setFieldEditable(lastNameField, editable);
+        setFieldEditable(statusField, editable);
+        setFieldEditable(positionField, editable);
+        setFieldEditable(supervisorField, editable);
+        setFieldEditable(roleField, editable);
+
+        setFieldEditable(birthDateField, editable && showPersonalDetails);
+        setFieldEditable(phoneField, editable && showPersonalDetails);
+        setFieldEditable(addressField, editable && showPersonalDetails);
+
+        setFieldEditable(sssField, editable && showGovernmentIds);
+        setFieldEditable(philHealthField, editable && showGovernmentIds);
+        setFieldEditable(tinField, editable && showGovernmentIds);
+        setFieldEditable(pagIbigField, editable && showGovernmentIds);
+
+        setFieldEditable(basicSalaryField, editable && showCompensation);
+        setFieldEditable(riceSubsidyField, editable && showCompensation);
+        setFieldEditable(phoneAllowanceField, editable && showCompensation);
+        setFieldEditable(clothingAllowanceField, editable && showCompensation);
+        setFieldEditable(grossSemiMonthlyField, editable && showCompensation);
+        setFieldEditable(hourlyRateField, editable && showCompensation);
+
+        if (submitButton != null) {
+            submitButton.setVisible(mode != Mode.VIEW);
+
+            if (mode == Mode.CREATE) {
+                submitButton.setText("Add Employee");
+            } else if (mode == Mode.UPDATE) {
+                submitButton.setText("Update Employee");
+            } else {
+                submitButton.setText("Submit");
+            }
+        }
+    }
+
+    private void setFieldEditable(JTextField field, boolean editable) {
+        if (field == null) {
+            return;
+        }
+
+        field.setEditable(editable);
+        field.setFocusable(editable);
+        field.setBackground(editable ? EDITABLE_BG : READONLY_BG);
+        field.setForeground(TEXT_PRIMARY);
+    }
+
+    private void resetFieldReferences() {
+        employeeNoField = null;
+        firstNameField = null;
+        lastNameField = null;
+        statusField = null;
+        positionField = null;
+        supervisorField = null;
+        roleField = null;
+
+        birthDateField = null;
+        phoneField = null;
+        addressField = null;
+
+        sssField = null;
+        philHealthField = null;
+        tinField = null;
+        pagIbigField = null;
+
+        basicSalaryField = null;
+        riceSubsidyField = null;
+        phoneAllowanceField = null;
+        clothingAllowanceField = null;
+        grossSemiMonthlyField = null;
+        hourlyRateField = null;
+    }
+
+    private void addSection(JPanel section, int gridx, int visibleSections) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = gridx;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0 / visibleSections;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, gridx == 0 ? 0 : 18, 0, 0);
+
+        formGridPanel.add(section, gbc);
+    }
+
+    private JPanel createBasicSection(Employee e) {
+        JPanel section = createSectionPanel("Basic Information");
+
+        employeeNoField = addField(section, "Employee No.", safe(e != null ? e.getId() : ""));
+        firstNameField = addField(section, "First Name", safe(e != null ? e.getFirstName() : ""));
+        lastNameField = addField(section, "Last Name", safe(e != null ? e.getLastName() : ""));
+        statusField = addField(section, "Status", safe(e != null ? e.getStatus() : ""));
+        positionField = addField(section, "Position", safe(e != null ? e.getPosition() : ""));
+        supervisorField = addField(section, "Immediate Supervisor", safe(e != null ? e.getSupervisor() : ""));
+        roleField = addField(
+                section,
+                "Role",
+                e != null && e.getRole() != null ? safe(e.getRole().getName()) : ""
+        );
+
+        return section;
+    }
+
+    private JPanel createPersonalSection(Employee e) {
+        JPanel section = createSectionPanel("Personal Detail");
+
+        birthDateField = addField(
+                section,
+                "Birth date",
+                e != null && e.getBirthDate() != null ? e.getBirthDate().format(DATE_FORMAT) : ""
+        );
+        phoneField = addField(section, "Phone No.", safe(e != null ? e.getPhone() : ""));
+        addressField = addField(section, "Address", safe(e != null ? e.getAddress() : ""));
+
+        return section;
+    }
+
+    private JPanel createGovernmentSection(Employee e) {
+        JPanel section = createSectionPanel("Government ID");
+
+        sssField = addField(section, "SSS No.", safe(e != null ? e.getSssNumber() : ""));
+        philHealthField = addField(section, "PhilHealth No.", safe(e != null ? e.getPhilHealthNumber() : ""));
+        tinField = addField(section, "TIN", safe(e != null ? e.getTinNumber() : ""));
+        pagIbigField = addField(section, "PAG-IBIG No.", safe(e != null ? e.getPagIbigNumber() : ""));
+
+        return section;
+    }
+
+    private JPanel createCompensationSection(Employee e) {
+        JPanel section = createSectionPanel("Compensation");
+
+        basicSalaryField = addField(section, "Basic Salary", formatMoney(e != null ? e.getBasicSalary() : null));
+        riceSubsidyField = addField(section, "Rice Subsidy", formatMoney(e != null ? e.getRiceSubsidy() : null));
+        phoneAllowanceField = addField(section, "Phone Allowance", formatMoney(e != null ? e.getPhoneAllowance() : null));
+        clothingAllowanceField = addField(section, "Clothing Allowance", formatMoney(e != null ? e.getClothingAllowance() : null));
+        grossSemiMonthlyField = addField(section, "Gross Semi-Monthly Rate", formatMoney(e != null ? e.getGrossSemiMonthlyRate() : null));
+        hourlyRateField = addField(section, "Hourly Rate", formatMoney(e != null ? e.getHourlyRate() : null));
+
+        return section;
+    }
+
+    private JPanel createSectionPanel(String title) {
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(FONT_TITLE);
+        titleLabel.setForeground(TEXT_PRIMARY);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        section.add(titleLabel);
+        section.add(Box.createVerticalStrut(6));
+
+        return section;
+    }
+
+    private JTextField addField(JPanel section, String label, String value) {
+        JLabel labelComp = new JLabel(label);
+        labelComp.setFont(FONT_LABEL);
+        labelComp.setForeground(TEXT_PRIMARY);
+        labelComp.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JTextField field = new JTextField(value == null ? "" : value);
+        field.setFont(FONT_VALUE);
+        field.setForeground(TEXT_PRIMARY);
+        field.setBackground(FIELD_BG);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(FIELD_BORDER),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        field.setPreferredSize(new Dimension(150, 34));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        section.add(labelComp);
+        section.add(Box.createVerticalStrut(3));
+        section.add(field);
+        section.add(Box.createVerticalStrut(8));
+
+        return field;
+    }
+
+    public String getEmployeeIdInput() {
+        return textOf(employeeNoField);
+    }
+
+    public String getFirstNameInput() {
+        return textOf(firstNameField);
+    }
+
+    public String getLastNameInput() {
+        return textOf(lastNameField);
+    }
+
+    public String getStatusInput() {
+        return textOf(statusField);
+    }
+
+    public String getPositionInput() {
+        return textOf(positionField);
+    }
+
+    public String getSupervisorInput() {
+        return textOf(supervisorField);
+    }
+
+    public String getRoleInput() {
+        return textOf(roleField);
+    }
+
+    public String getBirthDateInput() {
+        return textOf(birthDateField);
+    }
+
+    public String getPhoneInput() {
+        return textOf(phoneField);
+    }
+
+    public String getAddressInput() {
+        return textOf(addressField);
+    }
+
+    public String getSssInput() {
+        return textOf(sssField);
+    }
+
+    public String getPhilHealthInput() {
+        return textOf(philHealthField);
+    }
+
+    public String getTinInput() {
+        return textOf(tinField);
+    }
+
+    public String getPagIbigInput() {
+        return textOf(pagIbigField);
+    }
+
+    public String getBasicSalaryInput() {
+        return textOf(basicSalaryField);
+    }
+
+    public String getRiceSubsidyInput() {
+        return textOf(riceSubsidyField);
+    }
+
+    public String getPhoneAllowanceInput() {
+        return textOf(phoneAllowanceField);
+    }
+
+    public String getClothingAllowanceInput() {
+        return textOf(clothingAllowanceField);
+    }
+
+    public String getGrossSemiMonthlyInput() {
+        return textOf(grossSemiMonthlyField);
+    }
+
+    public String getHourlyRateInput() {
+        return textOf(hourlyRateField);
+    }
+
+    private String textOf(JTextField field) {
+        return field == null ? "" : safe(field.getText());
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private String formatMoney(BigDecimal value) {
-        return value == null ? "0.00" : value.toPlainString();
+        if (value == null) return "";
+        return new DecimalFormat("#,##0.00").format(value);
     }
 }
