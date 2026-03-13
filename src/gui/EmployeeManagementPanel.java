@@ -33,15 +33,9 @@ public class EmployeeManagementPanel extends JPanel {
             "Employee No.", "Name", "Status", "Position", "Immediate Supervisor", "Role"
     };
 
-    private static final Color PAGE_BG = new Color(242, 242, 242);
-    private static final Color CARD_BG = Color.WHITE;
-    private static final Color HEADER_BG = Color.BLACK;
-    private static final Color HEADER_FG = Color.WHITE;
-    private static final Color TEXT_DARK = new Color(30, 30, 30);
-    private static final Color MUTED = new Color(120, 120, 120);
     private static final Color BORDER = new Color(220, 220, 220);
-    private static final Color SELECT_BG = new Color(225, 235, 255);
-    private static final Color ALT_ROW = new Color(250, 250, 250);
+    private static final Color TEXT_DARK = new Color(25, 25, 25);
+    private static final Color SELECT_BG = new Color(232, 239, 252);
 
     private final EmployeeRepository repo;
     private final Path employeeCsvPath;
@@ -73,8 +67,7 @@ public class EmployeeManagementPanel extends JPanel {
 
         setLayout(new BorderLayout());
         setOpaque(false);
-        setBackground(PAGE_BG);
-        setBorder(new EmptyBorder(110, 50, 20, 50));
+        setBorder(new EmptyBorder(0, 0, 0, 0));
 
         this.model = createTableModel();
         this.table = createEmployeeTable();
@@ -93,50 +86,50 @@ public class EmployeeManagementPanel extends JPanel {
     }
 
     private JPanel createMainLayout() {
-        JPanel wrapper = new JPanel(new BorderLayout(0, 16));
-        wrapper.setOpaque(false);
+        JPanel outer = new JPanel(new BorderLayout(0, 16));
+        outer.setOpaque(false);
+        outer.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        wrapper.add(createActionBar(), BorderLayout.NORTH);
-        wrapper.add(createContentArea(), BorderLayout.CENTER);
+        outer.add(createActionBar(), BorderLayout.NORTH);
+        outer.add(createContentArea(), BorderLayout.CENTER);
 
-        return wrapper;
+        return outer;
     }
 
     private JPanel createActionBar() {
-        JPanel actionBar = new JPanel(new BorderLayout(12, 0));
-        actionBar.setOpaque(false);
+        JPanel actions = new JPanel(new BorderLayout());
+        actions.setOpaque(false);
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        left.setOpaque(false);
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        leftActions.setOpaque(false);
 
-        searchBtn = createOutlineButton("Search");
+        JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightActions.setOpaque(false);
 
-        left.add(searchField);
-        left.add(searchBtn);
+        searchBtn = createSearchButton("Search");
+        addBtn = createActionButton("Add");
+        updateBtn = createActionButton("Update");
+        deleteBtn = createActionButton("Delete");
+        viewBtn = createActionButton("View");
+        refreshBtn = createRefreshButton("Refresh");
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        right.setOpaque(false);
+        leftActions.add(searchField);
+        leftActions.add(searchBtn);
 
-        addBtn = createBlackActionButton("Add Employee");
-        updateBtn = createBlackActionButton("Update Employee");
-        deleteBtn = createBlackActionButton("Delete Employee");
-        viewBtn = createBlackActionButton("View Details");
-        refreshBtn = createOutlineButton("Refresh");
+        rightActions.add(addBtn);
+        rightActions.add(updateBtn);
+        rightActions.add(deleteBtn);
+        rightActions.add(viewBtn);
+        rightActions.add(refreshBtn);
 
-        right.add(addBtn);
-        right.add(updateBtn);
-        right.add(deleteBtn);
-        right.add(viewBtn);
-        right.add(refreshBtn);
-
-        actionBar.add(left, BorderLayout.WEST);
-        actionBar.add(right, BorderLayout.EAST);
+        actions.add(leftActions, BorderLayout.WEST);
+        actions.add(rightActions, BorderLayout.EAST);
 
         bindActionEvents();
         applyPermissions();
         updateActionButtonStates();
 
-        return actionBar;
+        return actions;
     }
 
     private JPanel createContentArea() {
@@ -169,32 +162,33 @@ public class EmployeeManagementPanel extends JPanel {
     }
 
     private JPanel createListCard() {
-        JPanel card = new JPanel(new BorderLayout(0, 12));
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
+        JPanel tableCard = new JPanel(new BorderLayout());
+        tableCard.setBackground(Color.WHITE);
+        tableCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1),
                 new EmptyBorder(0, 0, 0, 0)
         ));
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(Color.WHITE);
+        JScrollPane tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableScrollPane.getViewport().setBackground(new Color(245, 245, 245));
+        tableScrollPane.setBackground(new Color(245, 245, 245));
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
         footer.setBorder(new EmptyBorder(10, 14, 10, 14));
         footer.add(infoLabel, BorderLayout.WEST);
 
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(footer, BorderLayout.SOUTH);
+        tableCard.add(tableScrollPane, BorderLayout.CENTER);
+        tableCard.add(footer, BorderLayout.SOUTH);
 
-        return card;
+        return tableCard;
     }
 
     private JTextField createSearchField() {
         JTextField field = new JTextField();
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setPreferredSize(new Dimension(240, 40));
+        field.setPreferredSize(new Dimension(210, 44));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
                 new EmptyBorder(0, 12, 0, 12)
@@ -205,37 +199,43 @@ public class EmployeeManagementPanel extends JPanel {
     private JLabel createInfoLabel() {
         JLabel label = new JLabel(" ");
         label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        label.setForeground(MUTED);
+        label.setForeground(new Color(130, 130, 130));
         return label;
     }
 
-    private JButton createBlackActionButton(String text) {
+    private JButton createActionButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(120, 44));
         button.setBackground(Color.BLACK);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(true);
-        button.setOpaque(true);
-        button.setBorder(BorderFactory.createEmptyBorder(11, 16, 11, 16));
-        button.setPreferredSize(new Dimension(145, 40));
         return button;
     }
 
-    private JButton createOutlineButton(String text) {
+    private JButton createSearchButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setForeground(TEXT_DARK);
+        button.setPreferredSize(new Dimension(100, 44));
         button.setBackground(Color.WHITE);
+        button.setForeground(Color.BLACK);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(BORDER));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                new EmptyBorder(10, 16, 10, 16)
-        ));
-        button.setPreferredSize(new Dimension(100, 40));
+        return button;
+    }
+
+    private JButton createRefreshButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(100, 44));
+        button.setBackground(Color.WHITE);
+        button.setForeground(Color.BLACK);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(BORDER));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
 
@@ -251,36 +251,46 @@ public class EmployeeManagementPanel extends JPanel {
     private JTable createEmployeeTable() {
         JTable employeeTable = new JTable(model);
         employeeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        employeeTable.setRowHeight(40);
-        employeeTable.setShowGrid(false);
-        employeeTable.setIntercellSpacing(new Dimension(0, 0));
+        employeeTable.setRowHeight(42);
         employeeTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        employeeTable.setBackground(Color.WHITE);
-        employeeTable.setForeground(TEXT_DARK);
-        employeeTable.setSelectionBackground(SELECT_BG);
-        employeeTable.setSelectionForeground(TEXT_DARK);
         employeeTable.setFillsViewportHeight(true);
+
+        // Body colors
+        employeeTable.setBackground(new Color(245, 245, 245));
+        employeeTable.setForeground(new Color(35, 35, 35));
+        employeeTable.setSelectionBackground(new Color(200, 212, 232));
+        employeeTable.setSelectionForeground(new Color(25, 25, 25));
+
+        // Grid styling
+        employeeTable.setGridColor(new Color(235, 235, 235));
+        employeeTable.setShowVerticalLines(false);
+        employeeTable.setShowHorizontalLines(true);
+        employeeTable.setIntercellSpacing(new Dimension(0, 1));
         employeeTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         JTableHeader header = employeeTable.getTableHeader();
+        header.setBackground(Color.BLACK);
+        header.setForeground(Color.WHITE);
         header.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        header.setBackground(HEADER_BG);
-        header.setForeground(HEADER_FG);
+        header.setPreferredSize(new Dimension(header.getWidth(), 44));
         header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(header.getPreferredSize().width, 52));
 
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(
-                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
                 JLabel label = (JLabel) super.getTableCellRendererComponent(
-                        table, value, isSelected, hasFocus, row, col);
-                label.setHorizontalAlignment(CENTER);
+                        table, value, isSelected, hasFocus, row, column
+                );
+
                 label.setOpaque(true);
-                label.setBackground(HEADER_BG);
-                label.setForeground(HEADER_FG);
-                label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                label.setBackground(Color.BLACK);
+                label.setForeground(Color.WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
                 label.setBorder(new EmptyBorder(0, 10, 0, 10));
+
                 return label;
             }
         });
@@ -288,25 +298,34 @@ public class EmployeeManagementPanel extends JPanel {
         employeeTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(
-                    JTable table, Object value, boolean selected, boolean focus, int row, int col) {
+                    JTable table, Object value, boolean selected, boolean focus, int row, int column) {
 
-                super.getTableCellRendererComponent(table, value, selected, focus, row, col);
+                super.getTableCellRendererComponent(table, value, selected, focus, row, column);
 
-                setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setVerticalAlignment(SwingConstants.CENTER);
                 setBorder(new EmptyBorder(0, 10, 0, 10));
-                setHorizontalAlignment(CENTER);
+                setForeground(new Color(35, 35, 35));
 
                 if (selected) {
-                    setBackground(SELECT_BG);
-                    setForeground(TEXT_DARK);
+                    setBackground(new Color(200, 212, 232));
                 } else {
-                    setBackground(row % 2 == 0 ? Color.WHITE : ALT_ROW);
-                    setForeground(TEXT_DARK);
+                    setBackground(row % 2 == 0
+                            ? new Color(245, 245, 245)
+                            : new Color(239, 239, 239));
                 }
 
                 return this;
             }
         });
+
+        employeeTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+        employeeTable.getColumnModel().getColumn(1).setPreferredWidth(230);
+        employeeTable.getColumnModel().getColumn(2).setPreferredWidth(120);
+        employeeTable.getColumnModel().getColumn(3).setPreferredWidth(220);
+        employeeTable.getColumnModel().getColumn(4).setPreferredWidth(220);
+        employeeTable.getColumnModel().getColumn(5).setPreferredWidth(120);
 
         employeeTable.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
             if (!e.getValueIsAdjusting()) {
@@ -319,6 +338,7 @@ public class EmployeeManagementPanel extends JPanel {
 
     private void bindActionEvents() {
         searchBtn.addActionListener(e -> filterTable());
+
         refreshBtn.addActionListener(e -> {
             searchField.setText("");
             loadTable();
