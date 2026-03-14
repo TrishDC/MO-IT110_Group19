@@ -26,8 +26,16 @@ public class AttendancePanel extends JPanel {
     private static final Color TEXT_DARK = new Color(25, 25, 25);
     private static final Color MUTED_TEXT = new Color(130, 130, 130);
     private static final Color TABLE_BORDER = new Color(220, 220, 220);
-    private static final Color TABLE_SELECT_BG = new Color(232, 239, 252);
+    private static final Color TABLE_SELECT_BG = new Color(222, 235, 255);
     private static final Color FIELD_BORDER = new Color(180, 180, 180);
+
+    // table colors styled like your attached Employee panel
+    private static final Color TABLE_HEADER_BG = Color.BLACK;
+    private static final Color TABLE_HEADER_FG = Color.WHITE;
+    private static final Color TABLE_ROW_EVEN = new Color(245, 245, 245);
+    private static final Color TABLE_ROW_ODD = new Color(235, 235, 235);
+    private static final Color TABLE_TEXT = new Color(45, 45, 45);
+
     private static final String SEARCH_PLACEHOLDER = "Employee ID";
 
     private final AttendanceService attendanceService;
@@ -175,43 +183,75 @@ public class AttendancePanel extends JPanel {
         };
 
         table = new JTable(model);
-        table.setRowHeight(44);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        table.setRowHeight(40);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setFillsViewportHeight(true);
-        table.setGridColor(new Color(225, 225, 225));
-        table.setShowVerticalLines(true);
-        table.setShowHorizontalLines(true);
         table.setBackground(Color.WHITE);
-        table.setForeground(TEXT_DARK);
+        table.setForeground(TABLE_TEXT);
         table.setSelectionBackground(TABLE_SELECT_BG);
-        table.setSelectionForeground(TEXT_DARK);
+        table.setSelectionForeground(TABLE_TEXT);
+        table.setGridColor(Color.WHITE);
+        table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         JTableHeader header = table.getTableHeader();
-        header.setBackground(Color.BLACK);
-        header.setForeground(Color.WHITE);
-        header.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        header.setPreferredSize(new Dimension(header.getWidth(), 48));
+        header.setBackground(TABLE_HEADER_BG);
+        header.setForeground(TABLE_HEADER_FG);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        header.setPreferredSize(new Dimension(header.getWidth(), 40));
         header.setReorderingAllowed(false);
+        header.setResizingAllowed(true);
 
-        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
-        renderer.setBorder(new EmptyBorder(0, 10, 0, 10));
-        renderer.setVerticalAlignment(SwingConstants.CENTER);
-        renderer.setForeground(TEXT_DARK);
+        DefaultTableCellRenderer headerRenderer = (DefaultTableCellRenderer) header.getDefaultRenderer();
+        headerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        headerRenderer.setBorder(new EmptyBorder(0, 12, 0, 12));
+
+        DefaultTableCellRenderer stripedRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
+            ) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column
+                );
+
+                label.setBorder(new EmptyBorder(0, 12, 0, 12));
+                label.setVerticalAlignment(SwingConstants.CENTER);
+                label.setForeground(TABLE_TEXT);
+
+                if (isSelected) {
+                    label.setBackground(TABLE_SELECT_BG);
+                } else {
+                    label.setBackground(row % 2 == 0 ? TABLE_ROW_EVEN : TABLE_ROW_ODD);
+                }
+
+                if (column == 0 || column == 2 || column == 3) {
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                } else {
+                    label.setHorizontalAlignment(SwingConstants.LEFT);
+                }
+
+                return label;
+            }
+        };
 
         for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(renderer);
+            table.getColumnModel().getColumn(i).setCellRenderer(stripedRenderer);
         }
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(140);
-        table.getColumnModel().getColumn(1).setPreferredWidth(180);
-        table.getColumnModel().getColumn(2).setPreferredWidth(160);
-        table.getColumnModel().getColumn(3).setPreferredWidth(160);
+        table.getColumnModel().getColumn(0).setPreferredWidth(180);
+        table.getColumnModel().getColumn(1).setPreferredWidth(220);
+        table.getColumnModel().getColumn(2).setPreferredWidth(180);
+        table.getColumnModel().getColumn(3).setPreferredWidth(180);
 
         tableScrollPane = new JScrollPane(table);
         tableScrollPane.setBorder(BorderFactory.createLineBorder(TABLE_BORDER, 1));
         tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setOpaque(false);
+        tableScrollPane.setBackground(Color.WHITE);
 
         emptyStateLabel = new JLabel("No attendance history found.", SwingConstants.CENTER);
         emptyStateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));

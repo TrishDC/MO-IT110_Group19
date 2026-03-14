@@ -18,6 +18,7 @@ import service.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -29,6 +30,19 @@ public class EmployeeLeavesPanel extends JPanel {
 
     private static final String LIST_CARD = "LIST";
     private static final String FORM_CARD = "FORM";
+
+    private static final Color PAGE_BG = new Color(242, 242, 242);
+    private static final Color WHITE = Color.WHITE;
+    private static final Color BLACK = Color.BLACK;
+
+    private static final Color TABLE_BORDER = new Color(220, 220, 220);
+    private static final Color TABLE_GRID = new Color(232, 232, 232);
+    private static final Color TABLE_ROW_EVEN = new Color(245, 245, 245);
+    private static final Color TABLE_ROW_ODD = new Color(239, 239, 239);
+    private static final Color TABLE_SELECTION = new Color(220, 228, 240);
+
+    private static final Color TEXT_DARK = new Color(35, 35, 35);
+    private static final Color TEXT_MUTED = new Color(130, 130, 130);
 
     private final LeaveService leaveService;
     private final EmployeeRepository employeeRepository;
@@ -43,6 +57,7 @@ public class EmployeeLeavesPanel extends JPanel {
     private LeaveFormPanel formPanel;
     private JLabel emptyStateLabel;
     private JScrollPane tableScrollPane;
+    private JLabel infoLabel;
 
     private JButton btnAdd;
     private JButton btnUpdate;
@@ -69,6 +84,7 @@ public class EmployeeLeavesPanel extends JPanel {
 
         setLayout(new BorderLayout());
         setOpaque(false);
+        setBackground(PAGE_BG);
         setBorder(new EmptyBorder(0, 0, 0, 0));
 
         contentPanel.setOpaque(false);
@@ -96,12 +112,12 @@ public class EmployeeLeavesPanel extends JPanel {
         JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightActions.setOpaque(false);
 
-        btnAdd = createActionButton("Add");
-        btnUpdate = createActionButton("Update");
-        btnDelete = createActionButton("Delete");
-        btnRefresh = createActionButton("Refresh");
-        btnMyRecords = createActionButton("My Records");
-        btnViewAll = createActionButton("View All");
+        btnAdd = createBlackButton("Add");
+        btnUpdate = createBlackButton("Update");
+        btnDelete = createBlackButton("Delete");
+        btnRefresh = createWhiteButton("Refresh");
+        btnMyRecords = createBlackButton("My Records");
+        btnViewAll = createBlackButton("View All");
 
         btnAdd.addActionListener(e -> openAddForm());
         btnUpdate.addActionListener(e -> openUpdateForm());
@@ -140,9 +156,9 @@ public class EmployeeLeavesPanel extends JPanel {
         actions.add(rightActions, BorderLayout.EAST);
 
         JPanel tableCard = new JPanel(new BorderLayout());
-        tableCard.setBackground(Color.WHITE);
+        tableCard.setBackground(WHITE);
         tableCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createLineBorder(TABLE_BORDER, 1),
                 new EmptyBorder(0, 0, 0, 0)
         ));
 
@@ -156,34 +172,7 @@ public class EmployeeLeavesPanel extends JPanel {
         };
 
         table = new JTable(model);
-        table.setRowHeight(42);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setFillsViewportHeight(true);
-        table.setGridColor(new Color(225, 225, 225));
-        table.setShowVerticalLines(true);
-        table.setShowHorizontalLines(true);
-        table.setBackground(Color.WHITE);
-        table.setForeground(new Color(25, 25, 25));
-        table.setSelectionBackground(new Color(232, 239, 252));
-        table.setSelectionForeground(new Color(25, 25, 25));
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-
-        JTableHeader header = table.getTableHeader();
-        header.setBackground(Color.BLACK);
-        header.setForeground(Color.WHITE);
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        header.setPreferredSize(new Dimension(header.getWidth(), 44));
-        header.setReorderingAllowed(false);
-
-        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer();
-        cellRenderer.setBorder(new EmptyBorder(0, 10, 0, 10));
-        cellRenderer.setVerticalAlignment(SwingConstants.CENTER);
-        cellRenderer.setForeground(new Color(25, 25, 25));
-
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
-        }
+        styleTable();
 
         // Hide Leave ID column
         table.getColumnModel().getColumn(0).setMinWidth(0);
@@ -201,19 +190,99 @@ public class EmployeeLeavesPanel extends JPanel {
 
         tableScrollPane = new JScrollPane(table);
         tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.getViewport().setBackground(TABLE_ROW_EVEN);
+        tableScrollPane.setBackground(WHITE);
 
         emptyStateLabel = new JLabel("No leave requests found.", SwingConstants.CENTER);
         emptyStateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        emptyStateLabel.setForeground(new Color(130, 130, 130));
+        emptyStateLabel.setForeground(TEXT_MUTED);
+        emptyStateLabel.setOpaque(true);
+        emptyStateLabel.setBackground(WHITE);
         emptyStateLabel.setBorder(new EmptyBorder(30, 20, 30, 20));
 
+        infoLabel = new JLabel(" ");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        infoLabel.setForeground(TEXT_MUTED);
+
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setOpaque(false);
+        footer.setBorder(new EmptyBorder(10, 14, 10, 14));
+        footer.add(infoLabel, BorderLayout.WEST);
+
         tableCard.add(tableScrollPane, BorderLayout.CENTER);
+        tableCard.add(footer, BorderLayout.SOUTH);
 
         outer.add(actions, BorderLayout.NORTH);
         outer.add(tableCard, BorderLayout.CENTER);
 
         return outer;
+    }
+
+    private void styleTable() {
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setForeground(TEXT_DARK);
+        table.setBackground(TABLE_ROW_EVEN);
+        table.setRowHeight(38);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setFillsViewportHeight(true);
+
+        table.setGridColor(TABLE_GRID);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setSelectionBackground(TABLE_SELECTION);
+        table.setSelectionForeground(TEXT_DARK);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+        JTableHeader header = table.getTableHeader();
+        header.setBackground(BLACK);
+        header.setForeground(WHITE);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setReorderingAllowed(false);
+        header.setBorder(BorderFactory.createEmptyBorder());
+
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column
+                );
+
+                label.setOpaque(true);
+                label.setBackground(BLACK);
+                label.setForeground(WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(new EmptyBorder(0, 10, 0, 10));
+                return label;
+            }
+        });
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean selected, boolean focus, int row, int column) {
+
+                super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+
+                setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setVerticalAlignment(SwingConstants.CENTER);
+                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setForeground(TEXT_DARK);
+
+                if (selected) {
+                    setBackground(TABLE_SELECTION);
+                } else {
+                    setBackground(row % 2 == 0 ? TABLE_ROW_EVEN : TABLE_ROW_ODD);
+                }
+
+                return this;
+            }
+        });
     }
 
     private JPanel buildFormPage() {
@@ -398,6 +467,10 @@ public class EmployeeLeavesPanel extends JPanel {
                     leave.getNotes(),
                     leave.getStatus()
             });
+        }
+
+        if (infoLabel != null) {
+            infoLabel.setText(model.getRowCount() + " leave record(s) loaded.");
         }
 
         refreshEmptyState();
@@ -587,14 +660,26 @@ public class EmployeeLeavesPanel extends JPanel {
         return true;
     }
 
-    private JButton createActionButton(String text) {
+    private JButton createBlackButton(String text) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(120, 44));
-        button.setBackground(Color.BLACK);
-        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(104, 40));
+        button.setBackground(BLACK);
+        button.setForeground(WHITE);
         button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder());
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JButton createWhiteButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(90, 40));
+        button.setBackground(WHITE);
+        button.setForeground(BLACK);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(TABLE_BORDER));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
