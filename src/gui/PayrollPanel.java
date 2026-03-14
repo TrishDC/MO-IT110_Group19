@@ -29,11 +29,19 @@ public class PayrollPanel extends JPanel {
     private static final String LIST_CARD = "LIST";
     private static final String DETAIL_CARD = "DETAIL";
 
-    private static final Color PAGE_BG = new Color(245, 245, 245);
-    private static final Color BLACK = Color.BLACK;
+    private static final Color PAGE_BG = new Color(242, 242, 242);
     private static final Color WHITE = Color.WHITE;
-    private static final Color GRID = new Color(220, 220, 220);
-    private static final Color FIELD_BORDER = new Color(110, 110, 110);
+    private static final Color BLACK = Color.BLACK;
+
+    private static final Color TABLE_BORDER = new Color(220, 220, 220);
+    private static final Color TABLE_GRID = new Color(232, 232, 232);
+    private static final Color TABLE_ROW_EVEN = new Color(245, 245, 245);
+    private static final Color TABLE_ROW_ODD = new Color(239, 239, 239);
+    private static final Color TABLE_SELECTION = new Color(220, 228, 240);
+
+    private static final Color TEXT_DARK = new Color(35, 35, 35);
+    private static final Color TEXT_MUTED = new Color(130, 130, 130);
+    private static final Color FIELD_BORDER = new Color(180, 180, 180);
 
     private final AttendanceRepository attendanceRepository;
     private final Employee currentUser;
@@ -45,11 +53,11 @@ public class PayrollPanel extends JPanel {
     private final JPanel detailCardHolder = new JPanel(new BorderLayout());
 
     private final JTextField searchField = new JTextField();
-    private final JButton myRecordButton = createActionButton("My Record");
-    private final JButton viewAllButton = createActionButton("View All");
-    private final JButton generateButton = createActionButton("Generate");
-    private final JButton viewButton = createActionButton("View Payslip");
-    private final JButton refreshButton = createActionButton("Refresh");
+    private final JButton myRecordButton = createBlackButton("My Record");
+    private final JButton viewAllButton = createBlackButton("View All");
+    private final JButton generateButton = createBlackButton("Generate");
+    private final JButton viewButton = createBlackButton("View");
+    private final JButton refreshButton = createWhiteButton("Refresh");
 
     private final DefaultTableModel tableModel;
     private final JTable table;
@@ -65,8 +73,8 @@ public class PayrollPanel extends JPanel {
         this.attendanceRepository = new CsvAttendanceRepository();
 
         setLayout(new BorderLayout());
-        setBackground(PAGE_BG);
         setOpaque(false);
+        setBackground(PAGE_BG);
         setBorder(new EmptyBorder(0, 0, 0, 0));
 
         tableModel = new DefaultTableModel(
@@ -109,114 +117,170 @@ public class PayrollPanel extends JPanel {
     private JComponent buildListContent() {
         JPanel content = new JPanel(new BorderLayout(0, 16));
         content.setOpaque(false);
-
         content.add(buildTopBar(), BorderLayout.NORTH);
         content.add(buildTableSection(), BorderLayout.CENTER);
-
         return content;
     }
 
     private JComponent buildTopBar() {
-        JPanel container = new JPanel();
-        container.setOpaque(false);
-        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
 
-        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        searchRow.setOpaque(false);
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        left.setOpaque(false);
 
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        searchField.setPreferredSize(new Dimension(260, 44));
+        searchField.setPreferredSize(new Dimension(210, 40));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setForeground(TEXT_DARK);
+        searchField.setBackground(WHITE);
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(FIELD_BORDER, 1, true),
-                new EmptyBorder(0, 14, 0, 14)
+                new EmptyBorder(0, 12, 0, 12)
         ));
 
-        searchRow.add(searchField);
+        JButton searchButton = createWhiteButton("Search");
+        searchButton.addActionListener(e -> performSearch());
 
-        JPanel buttonRow = new JPanel(new BorderLayout());
-        buttonRow.setOpaque(false);
-        buttonRow.setBorder(new EmptyBorder(14, 0, 0, 0));
+        left.add(searchField);
+        left.add(searchButton);
 
-        JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        leftButtons.setOpaque(false);
-        leftButtons.add(myRecordButton);
-        leftButtons.add(viewAllButton);
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        right.setOpaque(false);
 
-        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        rightButtons.setOpaque(false);
-        rightButtons.add(generateButton);
-        rightButtons.add(viewButton);
-        rightButtons.add(refreshButton);
+        right.add(myRecordButton);
+        right.add(viewAllButton);
+        right.add(generateButton);
+        right.add(viewButton);
+        right.add(refreshButton);
 
-        buttonRow.add(leftButtons, BorderLayout.WEST);
-        buttonRow.add(rightButtons, BorderLayout.EAST);
+        top.add(left, BorderLayout.WEST);
+        top.add(right, BorderLayout.EAST);
 
-        container.add(searchRow);
-        container.add(buttonRow);
-
-        return container;
+        return top;
     }
 
     private JComponent buildTableSection() {
+        JPanel tableCard = new JPanel(new BorderLayout());
+        tableCard.setBackground(WHITE);
+        tableCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_BORDER, 1),
+                new EmptyBorder(0, 0, 0, 0)
+        ));
+
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(WHITE);
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
+        scrollPane.getViewport().setBackground(TABLE_ROW_EVEN);
+        scrollPane.setBackground(WHITE);
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
-        footer.setBorder(new EmptyBorder(10, 2, 0, 2));
+        footer.setBorder(new EmptyBorder(10, 14, 10, 14));
 
         infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        infoLabel.setForeground(new Color(120, 120, 120));
+        infoLabel.setForeground(TEXT_MUTED);
         footer.add(infoLabel, BorderLayout.WEST);
 
-        wrapper.add(scrollPane, BorderLayout.CENTER);
-        wrapper.add(footer, BorderLayout.SOUTH);
+        tableCard.add(scrollPane, BorderLayout.CENTER);
+        tableCard.add(footer, BorderLayout.SOUTH);
 
-        return wrapper;
+        return tableCard;
     }
 
     private void styleTable() {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setRowHeight(40);
-        table.setGridColor(GRID);
-        table.setShowGrid(true);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setForeground(TEXT_DARK);
+        table.setBackground(TABLE_ROW_EVEN);
+        table.setRowHeight(38);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setFillsViewportHeight(true);
-        table.setBackground(WHITE);
-        table.setForeground(BLACK);
-        table.setSelectionBackground(new Color(235, 235, 235));
-        table.setSelectionForeground(BLACK);
+
+        table.setGridColor(TABLE_GRID);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setSelectionBackground(TABLE_SELECTION);
+        table.setSelectionForeground(TEXT_DARK);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
         header.setBackground(BLACK);
         header.setForeground(WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 50));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setPreferredSize(new Dimension(header.getWidth(), 40));
         header.setReorderingAllowed(false);
+        header.setBorder(BorderFactory.createEmptyBorder());
 
-        DefaultTableCellRenderer center = new DefaultTableCellRenderer();
-        center.setHorizontalAlignment(SwingConstants.CENTER);
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 
-        for (int i = 0; i < table.getColumnModel().getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(center);
-        }
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column
+                );
+
+                label.setOpaque(true);
+                label.setBackground(BLACK);
+                label.setForeground(WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(new EmptyBorder(0, 10, 0, 10));
+                return label;
+            }
+        });
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean selected, boolean focus, int row, int column) {
+
+                super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+
+                setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setVerticalAlignment(SwingConstants.CENTER);
+                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setForeground(TEXT_DARK);
+
+                if (selected) {
+                    setBackground(TABLE_SELECTION);
+                } else {
+                    setBackground(row % 2 == 0 ? TABLE_ROW_EVEN : TABLE_ROW_ODD);
+                }
+
+                return this;
+            }
+        });
+
+        table.getColumnModel().getColumn(0).setPreferredWidth(110);
+        table.getColumnModel().getColumn(1).setPreferredWidth(220);
+        table.getColumnModel().getColumn(2).setPreferredWidth(220);
+        table.getColumnModel().getColumn(3).setPreferredWidth(150);
+        table.getColumnModel().getColumn(4).setPreferredWidth(140);
+        table.getColumnModel().getColumn(5).setPreferredWidth(150);
     }
 
-    private JButton createActionButton(String text) {
+    private JButton createBlackButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        button.setForeground(WHITE);
+        button.setPreferredSize(new Dimension(104, 40));
         button.setBackground(BLACK);
+        button.setForeground(WHITE);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setOpaque(true);
+        button.setBorder(BorderFactory.createEmptyBorder());
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(130, 44));
+        return button;
+    }
+
+    private JButton createWhiteButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(90, 40));
+        button.setBackground(WHITE);
+        button.setForeground(BLACK);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(TABLE_BORDER));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
 
