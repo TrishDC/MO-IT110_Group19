@@ -1,26 +1,42 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- *
- * @author trisha
+ * Represents a regular (permanent) employee.
  */
 public class RegularEmployee extends Employee {
-    
-    public RegularEmployee(String id, String firstName, String lastName, LocalDate birthDate, BigDecimal basicSalary, BigDecimal riceSubsidy, BigDecimal phoneAllowance, BigDecimal clothingAllowance, BigDecimal grossSemiMonthlyRate, BigDecimal hourlyRate) {
-        super(id, firstName, lastName, birthDate, basicSalary, riceSubsidy, phoneAllowance, clothingAllowance, grossSemiMonthlyRate, hourlyRate);
-    }
-        @Override
-public String toString() {
-    return "Regular Employee"+getPosition()+ getFirstName() + " " + getLastName();
-}
 
+    public RegularEmployee(
+            String id,
+            String firstName,
+            String lastName,
+            LocalDate birthDate,
+            BigDecimal basicSalary,
+            BigDecimal riceSubsidy,
+            BigDecimal phoneAllowance,
+            BigDecimal clothingAllowance,
+            BigDecimal grossSemiMonthlyRate,
+            BigDecimal hourlyRate
+    ) {
+        super(
+                id,
+                firstName,
+                lastName,
+                birthDate,
+                basicSalary,
+                riceSubsidy,
+                phoneAllowance,
+                clothingAllowance,
+                grossSemiMonthlyRate,
+                hourlyRate
+        );
+    }
+
+    /**
+     * Computes the total salary for a regular employee.
+     */
     @Override
     public BigDecimal calculateSalary() {
         return getBasicSalary()
@@ -28,16 +44,17 @@ public String toString() {
                 .add(getPhoneAllowance())
                 .add(getClothingAllowance());
     }
-    
-     @Override
+
+    @Override
     public String getEmployeeType() {
         return "Regular";
-    
-    
-    
+    }
 
-  
+    @Override
+    public String toString() {
+        return "Regular Employee - "
+                + getFirstName() + " "
+                + getLastName()
+                + " (" + getPosition() + ")";
+    }
 }
-}
-
-

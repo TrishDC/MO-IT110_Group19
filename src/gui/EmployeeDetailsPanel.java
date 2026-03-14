@@ -28,6 +28,7 @@ public class EmployeeDetailsPanel extends JPanel {
     private static final Color PAGE_BG = new Color(242, 242, 242);
     private static final Color TEXT_PRIMARY = new Color(20, 20, 20);
     private static final Color LINK_COLOR = new Color(95, 95, 95);
+    private static final Color LINK_HOVER_COLOR = new Color(55, 55, 55);
     private static final Color FIELD_BG = Color.WHITE;
     private static final Color FIELD_BORDER = new Color(110, 110, 110);
     private static final Color READONLY_BG = Color.WHITE;
@@ -110,8 +111,8 @@ public class EmployeeDetailsPanel extends JPanel {
             Employee employee,
             boolean showPersonalDetails,
             boolean showGovernmentIds,
-            boolean showCompensation) {
-
+            boolean showCompensation
+    ) {
         this.currentEmployee = employee;
         this.showPersonalDetails = showPersonalDetails;
         this.showGovernmentIds = showGovernmentIds;
@@ -173,6 +174,16 @@ public class EmployeeDetailsPanel extends JPanel {
                     onBack.run();
                 }
             }
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                backLabel.setForeground(LINK_HOVER_COLOR);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                backLabel.setForeground(LINK_COLOR);
+            }
         });
 
         topPanel.add(backLabel);
@@ -217,26 +228,12 @@ public class EmployeeDetailsPanel extends JPanel {
             case CREATE:
                 if (actionListener != null) {
                     actionListener.onCreate(this);
-                } else {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Create action triggered. Connect this panel to your service/repository layer.",
-                            "Create Employee",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
                 }
                 break;
 
             case UPDATE:
                 if (actionListener != null) {
                     actionListener.onUpdate(this);
-                } else {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Update action triggered. Connect this panel to your service/repository layer.",
-                            "Update Employee",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
                 }
                 break;
 
@@ -354,11 +351,11 @@ public class EmployeeDetailsPanel extends JPanel {
     }
 
     private JPanel createPersonalSection(Employee e) {
-        JPanel section = createSectionPanel("Personal Detail");
+        JPanel section = createSectionPanel("Personal Details");
 
         birthDateField = addField(
                 section,
-                "Birth date",
+                "Birth Date",
                 e != null && e.getBirthDate() != null ? e.getBirthDate().format(DATE_FORMAT) : ""
         );
         phoneField = addField(section, "Phone No.", safe(e != null ? e.getPhone() : ""));
@@ -373,7 +370,7 @@ public class EmployeeDetailsPanel extends JPanel {
         sssField = addField(section, "SSS No.", safe(e != null ? e.getSssNumber() : ""));
         philHealthField = addField(section, "PhilHealth No.", safe(e != null ? e.getPhilHealthNumber() : ""));
         tinField = addField(section, "TIN", safe(e != null ? e.getTinNumber() : ""));
-        pagIbigField = addField(section, "PAG-IBIG No.", safe(e != null ? e.getPagIbigNumber() : ""));
+        pagIbigField = addField(section, "Pag-IBIG No.", safe(e != null ? e.getPagIbigNumber() : ""));
 
         return section;
     }
@@ -523,7 +520,9 @@ public class EmployeeDetailsPanel extends JPanel {
     }
 
     private String formatMoney(BigDecimal value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return new DecimalFormat("#,##0.00").format(value);
     }
 }

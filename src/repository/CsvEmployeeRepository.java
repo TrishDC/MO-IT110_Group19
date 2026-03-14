@@ -2,10 +2,13 @@ package repository;
 
 import RBAC.RBACSetup;
 import RBAC.Role;
-import model.Employee;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
+import model.Employee;
+import model.ProbationaryEmployee;
+import model.RegularEmployee;
+import model.EmployeeFactory;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -34,39 +37,38 @@ public class CsvEmployeeRepository implements EmployeeRepository {
 
     @Override
     public List<Employee> loadAll() throws IOException {
-
         List<Employee> employees = new ArrayList<>();
         Map<String, Role> roles = RBACSetup.setupRoles();
 
         try (CSVReader csv = new CSVReader(
                 new FileReader(csvPath.toFile(), StandardCharsets.UTF_8))) {
 
-            csv.readNext(); // Skip header
-
+            csv.readNext(); // skip header
             String[] parts;
 
             while ((parts = csv.readNext()) != null) {
-
                 if (parts.length < 20) {
                     continue;
                 }
 
-                String id = parts[0].trim();
-                String last = parts[1].trim();
-                String first = parts[2].trim();
-                LocalDate birth = parseDateOrNow(parts[3]);
+                String id = safe(parts, 0);
+                String last = safe(parts, 1);
+                String first = safe(parts, 2);
+                LocalDate birth = parseDateOrNow(safe(parts, 3));
 
-                BigDecimal basic = parseDecimalOrZero(cleanNumber(parts[13]));
-                BigDecimal rice = parseDecimalOrZero(cleanNumber(parts[14]));
-                BigDecimal phoneA = parseDecimalOrZero(cleanNumber(parts[15]));
-                BigDecimal clothA = parseDecimalOrZero(cleanNumber(parts[16]));
-                BigDecimal semi = parseDecimalOrZero(cleanNumber(parts[17]));
-                BigDecimal hour = parseDecimalOrZero(cleanNumber(parts[18]));
+                BigDecimal basic = parseDecimalOrZero(cleanNumber(safe(parts, 13)));
+                BigDecimal rice = parseDecimalOrZero(cleanNumber(safe(parts, 14)));
+                BigDecimal phoneA = parseDecimalOrZero(cleanNumber(safe(parts, 15)));
+                BigDecimal clothA = parseDecimalOrZero(cleanNumber(safe(parts, 16)));
+                BigDecimal semi = parseDecimalOrZero(cleanNumber(safe(parts, 17)));
+                BigDecimal hour = parseDecimalOrZero(cleanNumber(safe(parts, 18)));
 
-                String roleName = parts[19] == null ? "" : parts[19].trim().toUpperCase();
+                String status = safe(parts, 10);
+                String roleName = safe(parts, 19).toUpperCase();
                 Role role = roles.get(roleName);
 
-                Employee employee = new Employee(
+                Employee employee = EmployeeFactory.createEmployee(
+                        status,
                         id,
                         first,
                         last,
@@ -77,29 +79,28 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                         clothA,
                         semi,
                         hour
-                ) {
-                    @Override
-                    public BigDecimal calculateSalary() {
-                        throw new UnsupportedOperationException("Not supported yet.");
-                    }
-                };
-                
-                employee.setAddress(parts[4]);
-                employee.setPhone(fixLongNumber(parts[5]));
-                employee.setSssNumber(fixLongNumber(parts[6]));
-                employee.setPhilHealthNumber(fixLongNumber(parts[7]));
-                employee.setTinNumber(fixLongNumber(parts[8]));
-                employee.setPagIbigNumber(fixLongNumber(parts[9]));
-                employee.setStatus(parts[10]);
-                employee.setPosition(parts[11]);
-                employee.setSupervisor(parts[12]);
-                employee.setRole(role);
+                );
+
+                setIfNotBlankAddress(employee, safe(parts, 4));
+                setIfNotBlankPhone(employee, fixLongNumber(safe(parts, 5)));
+                setIfNotBlankSss(employee, fixLongNumber(safe(parts, 6)));
+                setIfNotBlankPhilHealth(employee, fixLongNumber(safe(parts, 7)));
+                setIfNotBlankTin(employee, fixLongNumber(safe(parts, 8)));
+                setIfNotBlankPagIbig(employee, fixLongNumber(safe(parts, 9)));
+
+                employee.setStatus(status);
+                employee.setPosition(safe(parts, 11));
+                employee.setSupervisor(safe(parts, 12));
+
+                if (role != null) {
+                    employee.setRole(role);
+                }
 
                 employees.add(employee);
             }
 
         } catch (CsvValidationException ex) {
-            throw new IOException("Invalid CSV format", ex);
+            throw new IOException("Invalid CSV format.", ex);
         }
 
         return employees;
@@ -107,7 +108,6 @@ public class CsvEmployeeRepository implements EmployeeRepository {
 
     @Override
     public void saveAll(List<Employee> employees) throws IOException {
-
         Path temp = csvPath.resolveSibling(csvPath.getFileName() + ".tmp");
 
         try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8);
@@ -132,15 +132,14 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                     "Phone Allowance",
                     "Clothing Allowance",
                     "Semi-monthly Rate",
-                    "Hourly Rate"
+                    "Hourly Rate",
+                    "Role"
             };
 
             csv.writeNext(header);
 
             for (Employee e : employees) {
-
                 String[] row = {
-
                         e.getId(),
                         e.getLastName(),
                         e.getFirstName(),
@@ -159,7 +158,8 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                         e.getPhoneAllowance().toPlainString(),
                         e.getClothingAllowance().toPlainString(),
                         e.getGrossSemiMonthlyRate().toPlainString(),
-                        e.getHourlyRate().toPlainString()
+                        e.getHourlyRate().toPlainString(),
+                        e.getRole() != null ? e.getRole().getName() : ""
                 };
 
                 csv.writeNext(row);
@@ -187,7 +187,6 @@ public class CsvEmployeeRepository implements EmployeeRepository {
     }
 
     private String fixLongNumber(String value) {
-
         if (value == null || value.isBlank()) {
             return "";
         }
@@ -195,23 +194,60 @@ public class CsvEmployeeRepository implements EmployeeRepository {
         value = value.trim();
 
         if (value.contains("E") || value.contains("e")) {
-
             try {
                 value = new BigDecimal(value).toPlainString();
-            } catch (NumberFormatException ex) {
+            } catch (NumberFormatException ignored) {
             }
         }
-        
-        
 
         return value;
     }
-    
+
     private String cleanNumber(String value) {
         if (value == null) {
             return "0";
         }
         return value.replace(",", "").trim();
     }
+
+    private String safe(String[] parts, int index) {
+        if (parts == null || index < 0 || index >= parts.length || parts[index] == null) {
+            return "";
+        }
+        return parts[index].trim();
+    }
+
+    private void setIfNotBlankAddress(Employee employee, String value) {
+        employee.setAddress(value);
+    }
+
+    private void setIfNotBlankPhone(Employee employee, String value) {
+        if (!value.isBlank()) {
+            employee.setPhone(value);
+        }
+    }
+
+    private void setIfNotBlankSss(Employee employee, String value) {
+        if (!value.isBlank()) {
+            employee.setSssNumber(value);
+        }
+    }
+
+    private void setIfNotBlankPhilHealth(Employee employee, String value) {
+        if (!value.isBlank()) {
+            employee.setPhilHealthNumber(value);
+        }
+    }
+
+    private void setIfNotBlankTin(Employee employee, String value) {
+        if (!value.isBlank()) {
+            employee.setTinNumber(value);
+        }
+    }
+
+    private void setIfNotBlankPagIbig(Employee employee, String value) {
+        if (!value.isBlank()) {
+            employee.setPagIbigNumber(value);
+        }
+    }
 }
-    

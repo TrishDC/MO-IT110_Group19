@@ -5,42 +5,28 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
-
-/**
- * Represents an employee and their compensation/details.
- */
-public abstract class Employee implements IEmployee {
+public abstract class Employee {
 
     private final String id;
+
     private String firstName;
     private String lastName;
     private LocalDate birthDate;
-    private String department;
+    private String department = "";
 
-    // contact & government IDs
     private String address = "";
-    private String Phone = "";
-    private String SssNumber = "";
-    private String PhilHealthNumber = "";
+    private String phone = "";
+    private String sssNumber = "";
+    private String philHealthNumber = "";
+    private String tinNumber = "";
+    private String pagIbigNumber = "";
 
-    private String TinNumber = "";
-    private String PagIbigNumber = "";
-
-    // employment info
-    private String status = "";        // e.g. "Regular"
+    private String status = "";
     private String position = "";
     private String supervisor = "";
 
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
     private Role role;
 
-    // salary fields
     private BigDecimal basicSalary;
     private BigDecimal riceSubsidy;
     private BigDecimal phoneAllowance;
@@ -48,20 +34,6 @@ public abstract class Employee implements IEmployee {
     private BigDecimal grossSemiMonthlyRate;
     private BigDecimal hourlyRate;
 
-    /**
-     * Primary constructor (used by repository for allowances-only).
-     *
-     * @param id
-     * @param firstName
-     * @param lastName
-     * @param birthDate
-     * @param basicSalary
-     * @param riceSubsidy
-     * @param phoneAllowance
-     * @param clothingAllowance
-     * @param grossSemiMonthlyRate
-     * @param hourlyRate
-     */
     public Employee(
             String id,
             String firstName,
@@ -74,39 +46,18 @@ public abstract class Employee implements IEmployee {
             BigDecimal grossSemiMonthlyRate,
             BigDecimal hourlyRate
     ) {
-        this.id = Objects.requireNonNull(id, "ID must not be null");
+        this.id = requireNotBlank(id, "Employee ID is required.");
         setFirstName(firstName);
         setLastName(lastName);
-        this.birthDate = Objects.requireNonNull(birthDate, "Birth date must not be null");
-        this.basicSalary = Objects.requireNonNull(basicSalary, "Basic salary must not be null");
-        this.riceSubsidy = Objects.requireNonNull(riceSubsidy, "Rice subsidy must not be null");
-        this.phoneAllowance = Objects.requireNonNull(phoneAllowance, "Phone allowance must not be null");
-        this.clothingAllowance = Objects.requireNonNull(clothingAllowance, "Clothing allowance must not be null");
-        this.grossSemiMonthlyRate = Objects.requireNonNull(grossSemiMonthlyRate, "Semi-monthly rate must not be null");
-        this.hourlyRate = Objects.requireNonNull(hourlyRate, "Hourly rate must not be null");
+        setBirthDate(birthDate);
+        setBasicSalary(basicSalary);
+        setRiceSubsidy(riceSubsidy);
+        setPhoneAllowance(phoneAllowance);
+        setClothingAllowance(clothingAllowance);
+        setGrossSemiMonthlyRate(grossSemiMonthlyRate);
+        setHourlyRate(hourlyRate);
     }
 
-    /**
-     * Convenience for when only personal info is known.
-     *
-     * @param id
-     * @param firstName
-     * @param lastName
-     * @param birthDate
-     */
-    public Employee(
-            String id,
-            String firstName,
-            String lastName,
-            LocalDate birthDate
-    ) {
-        this(id, firstName, lastName, birthDate,
-                BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO);
-    }
-
-    // --- ID & Name & Date ---
     public String getId() {
         return id;
     }
@@ -116,10 +67,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setFirstName(String firstName) {
-        if (firstName == null || firstName.isBlank()) {
-            throw new IllegalArgumentException("First name cannot be empty");
-        }
-        this.firstName = firstName.trim();
+        this.firstName = requireNotBlank(firstName, "First name is required.");
     }
 
     public String getLastName() {
@@ -127,10 +75,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setLastName(String lastName) {
-        if (lastName == null || lastName.isBlank()) {
-            throw new IllegalArgumentException("Last name cannot be empty");
-        }
-        this.lastName = lastName.trim();
+        this.lastName = requireNotBlank(lastName, "Last name is required.");
     }
 
     public LocalDate getBirthDate() {
@@ -138,99 +83,91 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = Objects.requireNonNull(birthDate, "Birth date must not be null");
+        this.birthDate = Objects.requireNonNull(birthDate, "Birth date is required.");
     }
 
-    // --- Contact & IDs ---
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = safeTrim(department);
+    }
+
     public String getAddress() {
         return address;
     }
 
     public void setAddress(String address) {
-        this.address = address == null ? "" : address.trim();
+        this.address = safeTrim(address);
     }
 
     public String getPhone() {
-        return Phone;
+        return phone;
     }
 
-    public void setPhone(String Phone) {
-        if (Phone == null) {
-            throw new IllegalArgumentException("Phone cannot be null");
+    public void setPhone(String phone) {
+        String value = requireNotBlank(phone, "Phone number is required.");
+        if (!value.matches("\\d{3}-\\d{3}-\\d{4}|\\d{11}|\\d{3}-\\d{3}-\\d{3}")) {
+            throw new IllegalArgumentException("Invalid phone number format.");
         }
-        Phone = Phone.trim();
-        if (Phone.matches("\\d{3}-\\d{3}-\\d{3}")) {
-            this.Phone = Phone;
-        } else {
-            throw new IllegalArgumentException("Invalid phone number: " + Phone);
-        }
+        this.phone = value;
     }
 
     public String getSssNumber() {
-        return SssNumber;
+        return sssNumber;
     }
 
     public void setSssNumber(String sssNumber) {
-
-        SssNumber = sssNumber.trim();
-        if (SssNumber.matches("\\d{2}-\\d{7}-\\d")) {
-            this.SssNumber = sssNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid SSS number: " + SssNumber);
+        String value = requireNotBlank(sssNumber, "SSS number is required.");
+        if (!value.matches("\\d{2}-\\d{7}-\\d")) {
+            throw new IllegalArgumentException("Invalid SSS number format.");
         }
+        this.sssNumber = value;
     }
 
     public String getPhilHealthNumber() {
-        return PhilHealthNumber;
+        return philHealthNumber;
     }
 
-    public void setPhilHealthNumber(String PhilHealthNumber) {
-        this.PhilHealthNumber = PhilHealthNumber;
-        PhilHealthNumber = PhilHealthNumber.trim();
-        PhilHealthNumber = PhilHealthNumber.trim();
-        if (PhilHealthNumber.matches("\\d{12}")) {
-            this.PhilHealthNumber = PhilHealthNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid PhilHealthNumber: " + PhilHealthNumber);
+    public void setPhilHealthNumber(String philHealthNumber) {
+        String value = requireNotBlank(philHealthNumber, "PhilHealth number is required.");
+        if (!value.matches("\\d{12}")) {
+            throw new IllegalArgumentException("Invalid PhilHealth number format.");
         }
+        this.philHealthNumber = value;
     }
 
     public String getTinNumber() {
-        return TinNumber;
+        return tinNumber;
     }
 
-    public void setTinNumber(String TinNumber) {
-        this.TinNumber = TinNumber;
-        TinNumber = TinNumber.trim();
-        if (TinNumber.matches("\\d{3}-\\d{3}-\\d{3}-\\d{1,4}")) {
-            this.TinNumber = TinNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid TIN number: " + TinNumber);
+    public void setTinNumber(String tinNumber) {
+        String value = requireNotBlank(tinNumber, "TIN number is required.");
+        if (!value.matches("\\d{3}-\\d{3}-\\d{3}-\\d{1,4}")) {
+            throw new IllegalArgumentException("Invalid TIN number format.");
         }
-
+        this.tinNumber = value;
     }
 
     public String getPagIbigNumber() {
-        return PagIbigNumber;
+        return pagIbigNumber;
     }
 
-    public void setPagIbigNumber(String PagIbigNumber) {
-        this.PagIbigNumber = PagIbigNumber;
-        PagIbigNumber = PagIbigNumber.trim();
-        if (PagIbigNumber.matches("\\d{12}")) {
-            this.PagIbigNumber = PagIbigNumber;
-        } else {
-            throw new IllegalArgumentException("Invalid PagIbigNumber: " + PagIbigNumber);
+    public void setPagIbigNumber(String pagIbigNumber) {
+        String value = requireNotBlank(pagIbigNumber, "Pag-IBIG number is required.");
+        if (!value.matches("\\d{12}")) {
+            throw new IllegalArgumentException("Invalid Pag-IBIG number format.");
         }
+        this.pagIbigNumber = value;
     }
 
-    // --- Employment info ---
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
-        this.status = status == null ? "" : status.trim();
+        this.status = requireNotBlank(status, "Status is required.");
     }
 
     public String getPosition() {
@@ -238,7 +175,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setPosition(String position) {
-        this.position = position == null ? "" : position.trim();
+        this.position = requireNotBlank(position, "Position is required.");
     }
 
     public String getSupervisor() {
@@ -246,16 +183,23 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setSupervisor(String supervisor) {
-        this.supervisor = supervisor == null ? "" : supervisor.trim();
+        this.supervisor = requireNotBlank(supervisor, "Supervisor is required.");
     }
 
-    // --- Salary fields ---
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = Objects.requireNonNull(role, "Role is required.");
+    }
+
     public BigDecimal getBasicSalary() {
         return basicSalary;
     }
 
     public void setBasicSalary(BigDecimal basicSalary) {
-        this.basicSalary = Objects.requireNonNull(basicSalary, "Basic salary must not be null");
+        this.basicSalary = requireNonNegative(basicSalary, "Basic salary");
     }
 
     public BigDecimal getRiceSubsidy() {
@@ -263,7 +207,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setRiceSubsidy(BigDecimal riceSubsidy) {
-        this.riceSubsidy = Objects.requireNonNull(riceSubsidy, "Rice subsidy must not be null");
+        this.riceSubsidy = requireNonNegative(riceSubsidy, "Rice subsidy");
     }
 
     public BigDecimal getPhoneAllowance() {
@@ -271,7 +215,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setPhoneAllowance(BigDecimal phoneAllowance) {
-        this.phoneAllowance = Objects.requireNonNull(phoneAllowance, "Phone allowance must not be null");
+        this.phoneAllowance = requireNonNegative(phoneAllowance, "Phone allowance");
     }
 
     public BigDecimal getClothingAllowance() {
@@ -279,15 +223,15 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setClothingAllowance(BigDecimal clothingAllowance) {
-        this.clothingAllowance = Objects.requireNonNull(clothingAllowance, "Clothing allowance must not be null");
+        this.clothingAllowance = requireNonNegative(clothingAllowance, "Clothing allowance");
     }
 
     public BigDecimal getGrossSemiMonthlyRate() {
         return grossSemiMonthlyRate;
     }
 
-    public void setGrossSemiMonthlyRate(BigDecimal rate) {
-        this.grossSemiMonthlyRate = Objects.requireNonNull(rate, "Semi-monthly rate must not be null");
+    public void setGrossSemiMonthlyRate(BigDecimal grossSemiMonthlyRate) {
+        this.grossSemiMonthlyRate = requireNonNegative(grossSemiMonthlyRate, "Gross semi-monthly rate");
     }
 
     public BigDecimal getHourlyRate() {
@@ -295,7 +239,7 @@ public abstract class Employee implements IEmployee {
     }
 
     public void setHourlyRate(BigDecimal hourlyRate) {
-        this.hourlyRate = Objects.requireNonNull(hourlyRate, "Hourly rate must not be null");
+        this.hourlyRate = requireNonNegative(hourlyRate, "Hourly rate");
     }
 
     public abstract BigDecimal calculateSalary();
@@ -303,32 +247,40 @@ public abstract class Employee implements IEmployee {
     public String getEmployeeType() {
         return "Employee";
     }
-    
-    public String getDepartment() {
-        return department;
-    }
 
     @Override
     public String toString() {
-        return String.format(
-                "Employee[id=%s, name=%s %s, birthDate=%s]",
-                id, firstName, lastName, birthDate
-        );
+        return "Employee[id=" + id + ", name=" + firstName + " " + lastName + "]";
     }
 
     @Override
     public boolean equals(Object o) {
-     if (this == o) {
-     return true;
-      }
-      if (!(o instanceof Employee)) {
-          return false;
-      }
-      return id.equals(((Employee) o).id);
+        if (this == o) return true;
+        if (!(o instanceof Employee other)) return false;
+        return id.equals(other.id);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(id);
+        return Objects.hash(id);
+    }
+
+    private String requireNotBlank(String value, String message) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.trim();
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private BigDecimal requireNonNegative(BigDecimal value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + " is required.");
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(fieldName + " cannot be negative.");
+        }
+        return value;
     }
 }
