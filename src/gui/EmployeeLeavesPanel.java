@@ -12,6 +12,7 @@ package gui;
 
 import model.Employee;
 import model.Leave;
+import repository.EmployeeRepository;
 import service.LeaveService;
 import service.SessionManager;
 
@@ -21,6 +22,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.io.IOException;
 import java.util.List;
 
 public class EmployeeLeavesPanel extends JPanel {
@@ -29,6 +31,7 @@ public class EmployeeLeavesPanel extends JPanel {
     private static final String FORM_CARD = "FORM";
 
     private final LeaveService leaveService;
+    private final EmployeeRepository employeeRepository;
     private final String currentEmployeeId;
     private final Employee currentUser;
 
@@ -41,16 +44,26 @@ public class EmployeeLeavesPanel extends JPanel {
     private JLabel emptyStateLabel;
     private JScrollPane tableScrollPane;
 
+    private JButton btnAdd;
+    private JButton btnUpdate;
+    private JButton btnDelete;
+    private JButton btnRefresh;
+    private JButton btnMyRecords;
+    private JButton btnViewAll;
+
     private Leave workingLeave;
     private boolean editMode = false;
-    private boolean hrViewMode = false;
+    private boolean hrReviewMode = false;
+    private boolean showAllRecords = false; // false = My Records, true = View All
 
     public EmployeeLeavesPanel(LeaveService leaveService,
+                               EmployeeRepository employeeRepository,
                                String currentEmployeeId,
                                String currentEmployeeName,
                                String currentDepartment,
                                String currentPosition) {
         this.leaveService = leaveService;
+        this.employeeRepository = employeeRepository;
         this.currentEmployeeId = currentEmployeeId;
         this.currentUser = SessionManager.getCurrentUser();
 
@@ -65,37 +78,10 @@ public class EmployeeLeavesPanel extends JPanel {
         add(contentPanel, BorderLayout.CENTER);
 
         loadLeaveRequests();
+        refreshActionButtons();
         showListPage();
     }
 
-    private void openHrViewForm() {
-        if (!isHrUser()) {
-            return;
-        }
-
-        int row = table.getSelectedRow();
-        if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a leave request first.");
-            return;
-        }
-
-        int leaveId = getSelectedLeaveId(row);
-        Leave selected = findSelectedLeave(leaveId);
-
-        if (selected == null) {
-            JOptionPane.showMessageDialog(this, "Selected leave request was not found.");
-            return;
-        }
-
-        hrViewMode = true;
-        editMode = false;
-        workingLeave = selected;
-
-        formPanel.setLeaveData(workingLeave);
-        formPanel.setHrReviewMode(true);
-
-        cardLayout.show(contentPanel, FORM_CARD);
-    }
     private JPanel buildListPage() {
         JPanel outer = new JPanel(new BorderLayout(0, 16));
         outer.setOpaque(false);
@@ -110,20 +96,39 @@ public class EmployeeLeavesPanel extends JPanel {
         JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightActions.setOpaque(false);
 
-        JButton btnAdd = createActionButton("Add");
-        JButton btnUpdate = createActionButton("Update");
-        JButton btnDelete = createActionButton("Delete");
-        JButton btnRefresh = createActionButton("Refresh");
-        JButton btnView = createActionButton("View");
+        btnAdd = createActionButton("Add");
+        btnUpdate = createActionButton("Update");
+        btnDelete = createActionButton("Delete");
+        btnRefresh = createActionButton("Refresh");
+        btnMyRecords = createActionButton("My Records");
+        btnViewAll = createActionButton("View All");
 
         btnAdd.addActionListener(e -> openAddForm());
         btnUpdate.addActionListener(e -> openUpdateForm());
         btnDelete.addActionListener(e -> onDelete());
         btnRefresh.addActionListener(e -> loadLeaveRequests());
-        btnView.addActionListener(e -> openHrViewForm());
+
+        btnMyRecords.addActionListener(e -> {
+            if (!isHrUser()) {
+                return;
+            }
+            showAllRecords = false;
+            loadLeaveRequests();
+            refreshActionButtons();
+        });
+
+        btnViewAll.addActionListener(e -> {
+            if (!isHrUser()) {
+                return;
+            }
+            showAllRecords = true;
+            loadLeaveRequests();
+            refreshActionButtons();
+        });
 
         if (isHrUser()) {
-            leftActions.add(btnView);
+            leftActions.add(btnMyRecords);
+            leftActions.add(btnViewAll);
         }
 
         rightActions.add(btnAdd);
@@ -142,7 +147,7 @@ public class EmployeeLeavesPanel extends JPanel {
         ));
 
         model = new DefaultTableModel(
-                new Object[]{"Employee ID", "Leave Type", "Start Date", "End Date", "Notes", "Status"}, 0
+                new Object[]{"Leave ID", "Employee ID", "Leave Type", "Start Date", "End Date", "Notes", "Status"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -180,12 +185,19 @@ public class EmployeeLeavesPanel extends JPanel {
             table.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(90);
-        table.getColumnModel().getColumn(1).setPreferredWidth(170);
-        table.getColumnModel().getColumn(2).setPreferredWidth(140);
+        // Hide Leave ID column
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
+        table.getColumnModel().getColumn(0).setPreferredWidth(0);
+
+        // Visible columns
+        table.getColumnModel().getColumn(1).setPreferredWidth(90);
+        table.getColumnModel().getColumn(2).setPreferredWidth(170);
         table.getColumnModel().getColumn(3).setPreferredWidth(140);
-        table.getColumnModel().getColumn(4).setPreferredWidth(320);
-        table.getColumnModel().getColumn(5).setPreferredWidth(120);
+        table.getColumnModel().getColumn(4).setPreferredWidth(140);
+        table.getColumnModel().getColumn(5).setPreferredWidth(320);
+        table.getColumnModel().getColumn(6).setPreferredWidth(120);
 
         tableScrollPane = new JScrollPane(table);
         tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -217,13 +229,26 @@ public class EmployeeLeavesPanel extends JPanel {
 
     private void openAddForm() {
         editMode = false;
-        hrViewMode = false;
-        
+        hrReviewMode = false;
+
         workingLeave = new Leave();
-        workingLeave.setEmployeeId(currentEmployeeId);
-        workingLeave.setStatus("Pending");
 
         formPanel.clearForm();
+
+        if (isHrUser() && showAllRecords) {
+            workingLeave.setEmployeeId("");
+            formPanel.setEmployeeFieldEditable(true);
+            formPanel.setEmployeeIdValue("");
+            formPanel.setManagerEntryMode(true);
+        } else {
+            workingLeave.setEmployeeId(currentEmployeeId);
+            formPanel.setEmployeeFieldEditable(false);
+            formPanel.setEmployeeIdValue(currentEmployeeId);
+            formPanel.setManagerEntryMode(false);
+        }
+
+        workingLeave.setStatus("Pending");
+
         formPanel.setFormMode(false);
         formPanel.setHrReviewMode(false);
         formPanel.setLeaveData(workingLeave);
@@ -231,18 +256,51 @@ public class EmployeeLeavesPanel extends JPanel {
         cardLayout.show(contentPanel, FORM_CARD);
     }
 
-    private void openUpdateForm() {        
+    private void openUpdateForm() {
         int row = table.getSelectedRow();
         if (row < 0) {
             JOptionPane.showMessageDialog(this, "Please select a leave request first.");
             return;
         }
 
-        int leaveId = Integer.parseInt(model.getValueAt(row, 0).toString());
+        int leaveId = getSelectedLeaveId(row);
+        if (leaveId < 0) {
+            JOptionPane.showMessageDialog(this, "Selected leave request was not found.");
+            return;
+        }
+
         Leave selected = findSelectedLeave(leaveId);
 
         if (selected == null) {
             JOptionPane.showMessageDialog(this, "Selected leave request was not found.");
+            return;
+        }
+
+        boolean ownRecord = currentEmployeeId.equals(selected.getEmployeeId());
+
+        if (isHrUser() && showAllRecords && !ownRecord) {
+            editMode = false;
+            hrReviewMode = true;
+            workingLeave = selected;
+
+            formPanel.setEmployeeFieldEditable(false);
+            formPanel.setEmployeeIdValue(selected.getEmployeeId());
+            formPanel.setManagerEntryMode(false);
+            formPanel.setFormMode(false);
+            formPanel.setHrReviewMode(true);
+            formPanel.setLeaveData(workingLeave);
+
+            cardLayout.show(contentPanel, FORM_CARD);
+            return;
+        }
+
+        if (!ownRecord) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You can only update your own leave request here.",
+                    "Action Not Allowed",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -252,9 +310,13 @@ public class EmployeeLeavesPanel extends JPanel {
         }
 
         editMode = true;
+        hrReviewMode = false;
         workingLeave = selected;
-        hrViewMode = false;
+        workingLeave.setStatus("Pending");
 
+        formPanel.setEmployeeFieldEditable(false);
+        formPanel.setEmployeeIdValue(selected.getEmployeeId());
+        formPanel.setManagerEntryMode(false);
         formPanel.setFormMode(true);
         formPanel.setHrReviewMode(false);
         formPanel.setLeaveData(workingLeave);
@@ -270,33 +332,53 @@ public class EmployeeLeavesPanel extends JPanel {
         formPanel.fillLeave(workingLeave);
 
         try {
-            if (hrViewMode && isHrUser()) {
+            boolean ownRecord = currentEmployeeId.equals(workingLeave.getEmployeeId());
+
+            if (hrReviewMode && isHrUser() && !ownRecord) {
                 leaveService.updateLeave(workingLeave);
-                JOptionPane.showMessageDialog(this, "Leave status updated successfully.");
+                JOptionPane.showMessageDialog(this, "Leave record updated successfully.");
             } else if (editMode) {
+                workingLeave.setEmployeeId(currentEmployeeId);
+                workingLeave.setStatus("Pending");
                 leaveService.updateOwnPendingLeave(workingLeave, currentEmployeeId);
                 JOptionPane.showMessageDialog(this, "Leave request updated successfully.");
             } else {
+                if (isHrUser() && showAllRecords) {
+                    if (!validateManagerEnteredEmployeeId(workingLeave.getEmployeeId())) {
+                        return;
+                    }
+                } else {
+                    workingLeave.setEmployeeId(currentEmployeeId);
+                }
+
+                workingLeave.setStatus("Pending");
                 leaveService.requestLeave(workingLeave);
                 JOptionPane.showMessageDialog(this, "Leave request filed successfully.");
             }
 
             workingLeave = null;
             editMode = false;
-            hrViewMode = false;
+            hrReviewMode = false;
             showListPage();
 
         } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Validation Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    ex.getMessage(),
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
     private void showListPage() {
-        hrViewMode = false;
+        editMode = false;
+        hrReviewMode = false;
         loadLeaveRequests();
+        refreshActionButtons();
         cardLayout.show(contentPanel, LIST_CARD);
     }
-    
+
     private void loadLeaveRequests() {
         if (model == null) {
             return;
@@ -304,15 +386,11 @@ public class EmployeeLeavesPanel extends JPanel {
 
         model.setRowCount(0);
 
-        List<Leave> leaves;
-        if (isHrUser()) {
-            leaves = leaveService.getAll();
-        } else {
-            leaves = leaveService.getByEmployeeId(currentEmployeeId);
-        }
+        List<Leave> leaves = getDisplayedLeaves();
 
         for (Leave leave : leaves) {
             model.addRow(new Object[]{
+                    leave.getLeaveId(),
                     leave.getEmployeeId(),
                     leave.getLeaveType(),
                     leave.getStartDate(),
@@ -323,6 +401,17 @@ public class EmployeeLeavesPanel extends JPanel {
         }
 
         refreshEmptyState();
+    }
+
+    private List<Leave> getDisplayedLeaves() {
+        if (isHrUser()) {
+            if (showAllRecords) {
+                return leaveService.getAll();
+            } else {
+                return leaveService.getByEmployeeId(currentEmployeeId);
+            }
+        }
+        return leaveService.getByEmployeeId(currentEmployeeId);
     }
 
     private void refreshEmptyState() {
@@ -339,35 +428,33 @@ public class EmployeeLeavesPanel extends JPanel {
         tableScrollPane.revalidate();
         tableScrollPane.repaint();
     }
-    
-    private String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
-    
-    private int getSelectedLeaveId(int row) {
-        String employeeId = model.getValueAt(row, 0).toString();
-        String leaveType = model.getValueAt(row, 1).toString();
-        String startDate = model.getValueAt(row, 2).toString();
-        String endDate = model.getValueAt(row, 3).toString();
-        String notes = model.getValueAt(row, 4).toString();
-        String status = model.getValueAt(row, 5).toString();
 
-        List<Leave> leaves = isHrUser()
-                ? leaveService.getAll()
-                : leaveService.getByEmployeeId(currentEmployeeId);
-
-        for (Leave leave : leaves) {
-            if (safe(leave.getEmployeeId()).equals(employeeId)
-                    && safe(leave.getLeaveType()).equals(leaveType)
-                    && safe(leave.getStartDate()).equals(startDate)
-                    && safe(leave.getEndDate()).equals(endDate)
-                    && safe(leave.getNotes()).equals(notes)
-                    && safe(leave.getStatus()).equals(status)) {
-                return leave.getLeaveId();
-            }
+    private void refreshActionButtons() {
+        if (btnAdd == null || btnUpdate == null || btnDelete == null || btnRefresh == null) {
+            return;
         }
 
-        return -1;
+        btnAdd.setEnabled(true);
+        btnUpdate.setEnabled(true);
+        btnDelete.setEnabled(true);
+        btnRefresh.setEnabled(true);
+    }
+
+    private int getSelectedLeaveId(int row) {
+        if (row < 0) {
+            return -1;
+        }
+
+        Object value = model.getValueAt(row, 0);
+        if (value == null) {
+            return -1;
+        }
+
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     private void onDelete() {
@@ -378,9 +465,41 @@ public class EmployeeLeavesPanel extends JPanel {
         }
 
         int leaveId = getSelectedLeaveId(row);
-        String status = model.getValueAt(row, 5).toString();
+        if (leaveId < 0) {
+            JOptionPane.showMessageDialog(this, "Selected leave request was not found.");
+            return;
+        }
 
-        if (!"Pending".equalsIgnoreCase(status)) {
+        Leave selected = findSelectedLeave(leaveId);
+
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Selected leave request was not found.");
+            return;
+        }
+
+        boolean ownRecord = currentEmployeeId.equals(selected.getEmployeeId());
+
+        if (isHrUser() && !ownRecord) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "HR cannot delete another employee's leave record.",
+                    "Action Not Allowed",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (!ownRecord) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You can only delete your own leave requests.",
+                    "Action Not Allowed",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (!"Pending".equalsIgnoreCase(selected.getStatus())) {
             JOptionPane.showMessageDialog(this, "Only pending leave requests can be deleted.");
             return;
         }
@@ -397,12 +516,7 @@ public class EmployeeLeavesPanel extends JPanel {
         }
 
         try {
-            if (isHrUser()) {
-                leaveService.deleteLeaveAsManager(leaveId);
-            } else {
-                leaveService.deleteOwnPendingLeave(leaveId, currentEmployeeId);
-            }
-
+            leaveService.deleteOwnPendingLeave(leaveId, currentEmployeeId);
             loadLeaveRequests();
             JOptionPane.showMessageDialog(this, "Leave request deleted successfully.");
         } catch (IllegalArgumentException ex) {
@@ -411,12 +525,7 @@ public class EmployeeLeavesPanel extends JPanel {
     }
 
     private Leave findSelectedLeave(int leaveId) {
-        List<Leave> leaves;
-        if (isHrUser()) {
-            leaves = leaveService.getAll();
-        } else {
-            leaves = leaveService.getByEmployeeId(currentEmployeeId);
-        }
+        List<Leave> leaves = getDisplayedLeaves();
 
         for (Leave leave : leaves) {
             if (leave.getLeaveId() == leaveId) {
@@ -424,6 +533,58 @@ public class EmployeeLeavesPanel extends JPanel {
             }
         }
         return null;
+    }
+
+    private boolean employeeExists(String employeeId) {
+        if (employeeId == null || employeeId.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            List<Employee> employees = employeeRepository.loadAll();
+            for (Employee employee : employees) {
+                if (employee != null
+                        && employee.getId() != null
+                        && employee.getId().trim().equalsIgnoreCase(employeeId.trim())) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Unable to validate Employee ID: " + e.getMessage(),
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return false;
+        }
+    }
+
+    private boolean validateManagerEnteredEmployeeId(String employeeId) {
+        String value = employeeId == null ? "" : employeeId.trim();
+
+        if (value.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Employee ID is required.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return false;
+        }
+
+        if (!employeeExists(value)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Employee ID was not found.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return false;
+        }
+
+        return true;
     }
 
     private JButton createActionButton(String text) {
@@ -437,7 +598,7 @@ public class EmployeeLeavesPanel extends JPanel {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
-    
+
     private boolean isHrUser() {
         return currentUser != null
                 && currentUser.getRole() != null

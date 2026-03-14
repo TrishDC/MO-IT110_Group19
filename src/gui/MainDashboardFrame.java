@@ -16,6 +16,7 @@ import RBAC.Permission;
 
 import repository.EmployeeRepository;
 import repository.CsvLeaveRepository;
+import repository.CsvEmployeeRepository;
 
 
 import service.AuthorizationService;
@@ -266,13 +267,15 @@ public class MainDashboardFrame extends JFrame {
         String employeeName = currentUser != null
                 ? (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim()
                 : "";
+        String department = currentUser != null ? safe(currentUser.getDepartment()) : "";
         String position = currentUser != null ? safe(currentUser.getPosition()) : "";
 
         return new EmployeeLeavesPanel(
                 leaveService,
+                employeeRepo,
                 employeeId,
                 employeeName,
-                "N/A",
+                department,
                 position
         );
     }

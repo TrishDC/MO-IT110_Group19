@@ -14,6 +14,8 @@ public class LeaveFormPanel extends JPanel {
     private final JLabel lblBack = new JLabel("<html><u>Back</u></html>");
     private final JButton btnSubmit = new JButton("Submit");
 
+    private final JTextField txtEmployeeId = new JTextField();
+
     private final JDateChooser dcStartDate = new JDateChooser();
     private final JDateChooser dcEndDate = new JDateChooser();
 
@@ -30,6 +32,9 @@ public class LeaveFormPanel extends JPanel {
     private java.awt.event.ActionListener backListener;
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    private boolean hrReviewMode = false;
+    private boolean managerEntryMode = false;
 
     public LeaveFormPanel() {
         setLayout(new BorderLayout());
@@ -48,6 +53,9 @@ public class LeaveFormPanel extends JPanel {
         wireEvents();
 
         cmbStatus.setSelectedItem("Pending");
+        cmbStatus.setEnabled(false);
+        txtEmployeeId.setEditable(false);
+        txtEmployeeId.setEnabled(false);
     }
 
     private JPanel buildTopBar() {
@@ -109,6 +117,8 @@ public class LeaveFormPanel extends JPanel {
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
+        left.add(createFieldBlock("Employee ID", txtEmployeeId));
+        left.add(Box.createVerticalStrut(22));
         left.add(createFieldBlock("Start Date", dcStartDate));
         left.add(Box.createVerticalStrut(22));
         left.add(createFieldBlock("End Date", dcEndDate));
@@ -187,6 +197,17 @@ public class LeaveFormPanel extends JPanel {
         Color borderColor = new Color(115, 115, 115);
         Dimension fieldSize = new Dimension(100, 54);
 
+        txtEmployeeId.setFont(fieldFont);
+        txtEmployeeId.setPreferredSize(fieldSize);
+        txtEmployeeId.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
+        txtEmployeeId.setBackground(Color.WHITE);
+        txtEmployeeId.setForeground(new Color(25, 25, 25));
+        txtEmployeeId.setCaretColor(new Color(25, 25, 25));
+        txtEmployeeId.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                new EmptyBorder(0, 14, 0, 14)
+        ));
+
         styleDateChooser(dcStartDate, fieldFont, borderColor, fieldSize);
         styleDateChooser(dcEndDate, fieldFont, borderColor, fieldSize);
 
@@ -262,6 +283,12 @@ public class LeaveFormPanel extends JPanel {
     }
 
     public void setLeaveData(Leave leave) {
+        if (leave == null) {
+            return;
+        }
+
+        txtEmployeeId.setText(leave.getEmployeeId() == null ? "" : leave.getEmployeeId());
+
         dcStartDate.setDate(parseDate(leave.getStartDate()));
         dcEndDate.setDate(parseDate(leave.getEndDate()));
 
@@ -273,11 +300,17 @@ public class LeaveFormPanel extends JPanel {
 
         txtNotes.setText(leave.getNotes() == null ? "" : leave.getNotes());
 
-        cmbStatus.setSelectedItem(
-                leave.getStatus() == null || leave.getStatus().trim().isEmpty()
-                        ? "Pending"
-                        : leave.getStatus()
-        );
+        String status = leave.getStatus() == null || leave.getStatus().trim().isEmpty()
+                ? "Pending"
+                : leave.getStatus();
+
+        cmbStatus.setSelectedItem(status);
+
+        if (!hrReviewMode) {
+            cmbStatus.setSelectedItem("Pending");
+        }
+
+        cmbStatus.setEnabled(hrReviewMode);
     }
 
     private Date parseDate(String value) {
@@ -292,19 +325,38 @@ public class LeaveFormPanel extends JPanel {
     }
 
     public void clearForm() {
+        txtEmployeeId.setText("");
         dcStartDate.setDate(null);
         dcEndDate.setDate(null);
         cmbLeaveType.setSelectedIndex(0);
         txtNotes.setText("");
         cmbStatus.setSelectedItem("Pending");
+        cmbStatus.setEnabled(false);
+        hrReviewMode = false;
+        managerEntryMode = false;
+        txtEmployeeId.setEditable(false);
+        txtEmployeeId.setEnabled(false);
     }
 
     public void fillLeave(Leave leave) {
+        if (leave == null) {
+            return;
+        }
+
+        if (txtEmployeeId.isEnabled()) {
+            leave.setEmployeeId(txtEmployeeId.getText().trim());
+        }
+
         leave.setStartDate(formatDate(dcStartDate.getDate()));
         leave.setEndDate(formatDate(dcEndDate.getDate()));
         leave.setLeaveType((String) cmbLeaveType.getSelectedItem());
         leave.setNotes(txtNotes.getText().trim());
-        leave.setStatus(String.valueOf(cmbStatus.getSelectedItem()));
+
+        if (cmbStatus.isEnabled()) {
+            leave.setStatus(String.valueOf(cmbStatus.getSelectedItem()));
+        } else {
+            leave.setStatus("Pending");
+        }
     }
 
     private String formatDate(Date date) {
@@ -320,12 +372,46 @@ public class LeaveFormPanel extends JPanel {
     }
 
     public void setHrReviewMode(boolean hrReviewMode) {
+        this.hrReviewMode = hrReviewMode;
+
         dcStartDate.setEnabled(!hrReviewMode);
         dcEndDate.setEnabled(!hrReviewMode);
         cmbLeaveType.setEnabled(!hrReviewMode);
         txtNotes.setEditable(!hrReviewMode);
+        txtNotes.setEnabled(true);
 
-        cmbStatus.setEnabled(true);
-        btnSubmit.setText(hrReviewMode ? "Submit" : btnSubmit.getText());
+        cmbStatus.setEnabled(hrReviewMode);
+
+        if (!hrReviewMode) {
+            cmbStatus.setSelectedItem("Pending");
+        }
+
+        if (!managerEntryMode) {
+            txtEmployeeId.setEditable(false);
+            txtEmployeeId.setEnabled(false);
+        }
+
+        btnSubmit.setText("Submit");
+    }
+
+    public void setManagerEntryMode(boolean managerEntryMode) {
+        this.managerEntryMode = managerEntryMode;
+
+        txtEmployeeId.setEditable(managerEntryMode);
+        txtEmployeeId.setEnabled(managerEntryMode);
+
+        if (!hrReviewMode) {
+            cmbStatus.setEnabled(false);
+            cmbStatus.setSelectedItem("Pending");
+        }
+    }
+
+    public void setEmployeeFieldEditable(boolean editable) {
+        txtEmployeeId.setEditable(editable);
+        txtEmployeeId.setEnabled(editable);
+    }
+
+    public void setEmployeeIdValue(String employeeId) {
+        txtEmployeeId.setText(employeeId == null ? "" : employeeId);
     }
 }

@@ -15,6 +15,7 @@ public abstract class Employee implements IEmployee {
     private String firstName;
     private String lastName;
     private LocalDate birthDate;
+    private String department;
 
     // contact & government IDs
     private String address = "";
@@ -301,6 +302,10 @@ public abstract class Employee implements IEmployee {
 
     public String getEmployeeType() {
         return "Employee";
+    }
+    
+    public String getDepartment() {
+        return department;
     }
 
     @Override
