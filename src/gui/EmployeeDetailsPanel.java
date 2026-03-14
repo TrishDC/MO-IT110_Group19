@@ -157,6 +157,11 @@ public class EmployeeDetailsPanel extends JPanel {
         repaint();
     }
 
+    public void showCreateMode(Runnable onSaveSuccess, Runnable onCancel) {
+        displayEmployee(null, true, true, true);
+        setMode(Mode.CREATE);
+    }
+
     private JPanel createTopPanel() {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         topPanel.setOpaque(false);

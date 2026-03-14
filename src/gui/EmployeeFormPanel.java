@@ -1,47 +1,29 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package gui;
 
-/**
- *
- * @author Rhynne Gracelle
- */
-
-import RBAC.RBACSetup;
-import RBAC.Role;
 import model.Employee;
-import model.RegularEmployee;
-import model.ProbationaryEmployee;
-import repository.EmployeeRepository;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 public class EmployeeFormPanel extends JPanel {
+
+    public interface SaveListener {
+        void onSave(EmployeeFormPanel panel);
+    }
 
     private static final Font LABEL_FONT = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font INPUT_FONT = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 13);
 
-    private final EmployeeRepository repo;
-    private final Runnable onSaveSuccess;
     private final Runnable onBack;
-    private final Map<String, Role> availableRoles = RBACSetup.setupRoles();
-
     private final JLabel titleLabel = new JLabel();
 
+    private SaveListener saveListener;
     private Employee editingEmployee;
 
     private final JTextField idField = new JTextField(10);
@@ -69,20 +51,20 @@ public class EmployeeFormPanel extends JPanel {
 
     public EmployeeFormPanel(
             String title,
-            EmployeeRepository repo,
             Employee employee,
-            Runnable onSaveSuccess,
             Runnable onBack
     ) {
-        this.repo = repo;
         this.editingEmployee = employee;
-        this.onSaveSuccess = onSaveSuccess;
         this.onBack = onBack;
 
         configureDateSpinner();
         configureComponents();
         buildLayout(title);
         setEmployee(employee);
+    }
+
+    public void setSaveListener(SaveListener saveListener) {
+        this.saveListener = saveListener;
     }
 
     private void configureDateSpinner() {
@@ -178,7 +160,11 @@ public class EmployeeFormPanel extends JPanel {
         buttonPanel.setBorder(new EmptyBorder(14, 0, 0, 0));
 
         JButton saveBtn = createBlackButton("Save");
-        saveBtn.addActionListener(e -> onSave());
+        saveBtn.addActionListener(e -> {
+            if (saveListener != null) {
+                saveListener.onSave(this);
+            }
+        });
 
         buttonPanel.add(saveBtn);
 
@@ -221,18 +207,18 @@ public class EmployeeFormPanel extends JPanel {
         if (employee == null) {
             titleLabel.setText("Add Employee");
             clearFields();
-            idField.setText(nextId());
+            idField.setText("");
             idField.setEditable(false);
             statusCombo.setEnabled(true);
             return;
         }
 
         titleLabel.setText("Update Employee");
-        idField.setText(safe(employee.getId()));
+        idField.setText(safeText(employee.getId()));
         idField.setEditable(false);
 
-        lastNameField.setText(safe(employee.getLastName()));
-        firstNameField.setText(safe(employee.getFirstName()));
+        lastNameField.setText(safeText(employee.getLastName()));
+        firstNameField.setText(safeText(employee.getFirstName()));
 
         if (employee.getBirthDate() != null) {
             birthdaySpinner.setValue(Date.from(
@@ -240,22 +226,26 @@ public class EmployeeFormPanel extends JPanel {
             ));
         }
 
-        addressField.setText(safe(employee.getAddress()));
-        phoneField.setText(safe(employee.getPhone()));
-        sssField.setText(safe(employee.getSssNumber()));
-        philHealthField.setText(safe(employee.getPhilHealthNumber()));
-        tinField.setText(safe(employee.getTinNumber()));
-        pagIbigField.setText(safe(employee.getPagIbigNumber()));
-        statusCombo.setSelectedItem(safe(employee.getStatus()).isEmpty() ? "Regular" : employee.getStatus());
-        positionField.setText(safe(employee.getPosition()));
-        supervisorField.setText(safe(employee.getSupervisor()));
-        basicSalaryField.setText(toText(employee.getBasicSalary()));
-        riceSubsidyField.setText(toText(employee.getRiceSubsidy()));
-        phoneAllowanceField.setText(toText(employee.getPhoneAllowance()));
-        clothingAllowanceField.setText(toText(employee.getClothingAllowance()));
-        semiMonthlyRateField.setText(toText(employee.getGrossSemiMonthlyRate()));
-        hourlyRateField.setText(toText(employee.getHourlyRate()));
+        addressField.setText(safeText(employee.getAddress()));
+        phoneField.setText(safeText(employee.getPhone()));
+        sssField.setText(safeText(employee.getSssNumber()));
+        philHealthField.setText(safeText(employee.getPhilHealthNumber()));
+        tinField.setText(safeText(employee.getTinNumber()));
+        pagIbigField.setText(safeText(employee.getPagIbigNumber()));
+        statusCombo.setSelectedItem(safeText(employee.getStatus()).isEmpty() ? "Regular" : employee.getStatus());
+        positionField.setText(safeText(employee.getPosition()));
+        supervisorField.setText(safeText(employee.getSupervisor()));
+        basicSalaryField.setText(toDisplayText(employee.getBasicSalary()));
+        riceSubsidyField.setText(toDisplayText(employee.getRiceSubsidy()));
+        phoneAllowanceField.setText(toDisplayText(employee.getPhoneAllowance()));
+        clothingAllowanceField.setText(toDisplayText(employee.getClothingAllowance()));
+        semiMonthlyRateField.setText(toDisplayText(employee.getGrossSemiMonthlyRate()));
+        hourlyRateField.setText(toDisplayText(employee.getHourlyRate()));
         roleCombo.setSelectedItem(employee.getRole() != null ? employee.getRole().getName() : "SALES");
+    }
+
+    public void setCreateMode() {
+        setEmployee(null);
     }
 
     private void clearFields() {
@@ -275,139 +265,91 @@ public class EmployeeFormPanel extends JPanel {
         roleCombo.setSelectedItem("SALES");
     }
 
-    private String nextId() {
-        try {
-            List<Employee> all = repo.loadAll();
-            return all.stream()
-                    .map(Employee::getId)
-                    .map(id -> {
-                        try {
-                            return Integer.parseInt(id);
-                        } catch (Exception e) {
-                            return 0;
-                        }
-                    })
-                    .max(Comparator.naturalOrder())
-                    .map(maxId -> String.valueOf(maxId + 1))
-                    .orElse("10001");
-        } catch (IOException ex) {
-            return "10001";
-        }
+    public void setEmployeeId(String employeeId) {
+        idField.setText(employeeId == null ? "" : employeeId.trim());
     }
 
-    private void onSave() {
-        try {
-            validateInput();
-
-            LocalDate birthDate = toLocalDate((Date) birthdaySpinner.getValue());
-
-            BigDecimal basicSalary = parseDecimalRequired(basicSalaryField.getText(), "Basic Salary");
-            BigDecimal riceSubsidy = parseDecimalOrZero(riceSubsidyField.getText());
-            BigDecimal phoneAllowance = parseDecimalOrZero(phoneAllowanceField.getText());
-            BigDecimal clothingAllowance = parseDecimalOrZero(clothingAllowanceField.getText());
-            BigDecimal grossSemiMonthlyRate = parseDecimalRequired(semiMonthlyRateField.getText(), "Gross Semi-monthly Rate");
-            BigDecimal hourlyRate = parseDecimalRequired(hourlyRateField.getText(), "Hourly Rate");
-
-            Employee employee = createEmployeeByStatus(
-                    idField.getText().trim(),
-                    firstNameField.getText().trim(),
-                    lastNameField.getText().trim(),
-                    birthDate,
-                    basicSalary,
-                    riceSubsidy,
-                    phoneAllowance,
-                    clothingAllowance,
-                    grossSemiMonthlyRate,
-                    hourlyRate
-            );
-
-            employee.setAddress(addressField.getText().trim());
-            employee.setPhone(phoneField.getText().trim());
-            employee.setSssNumber(sssField.getText().trim());
-            employee.setPhilHealthNumber(philHealthField.getText().trim());
-            employee.setTinNumber(tinField.getText().trim());
-            employee.setPagIbigNumber(pagIbigField.getText().trim());
-            employee.setStatus(String.valueOf(statusCombo.getSelectedItem()));
-            employee.setPosition(positionField.getText().trim());
-            employee.setSupervisor(supervisorField.getText().trim());
-            employee.setRole(resolveRole(String.valueOf(roleCombo.getSelectedItem())));
-
-            List<Employee> employees = repo.loadAll();
-
-            if (editingEmployee == null) {
-                employees.add(employee);
-            } else {
-                for (int i = 0; i < employees.size(); i++) {
-                    if (employees.get(i).getId().equals(editingEmployee.getId())) {
-                        employees.set(i, employee);
-                        break;
-                    }
-                }
-            }
-
-            repo.saveAll(employees);
-
-            JOptionPane.showMessageDialog(this, "Employee record saved successfully.");
-
-            if (onSaveSuccess != null) {
-                onSaveSuccess.run();
-            }
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Could not save employee record:\n" + ex.getMessage(),
-                    "Validation Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    public String getEmployeeIdInput() {
+        return idField.getText().trim();
     }
 
-    private void validateInput() {
-        requireNotBlank(lastNameField.getText(), "Last Name");
-        requireNotBlank(firstNameField.getText(), "First Name");
-        requireNotBlank(addressField.getText(), "Address");
-        requireNotBlank(phoneField.getText(), "Phone Number");
-        requireNotBlank(sssField.getText(), "SSS #");
-        requireNotBlank(philHealthField.getText(), "PhilHealth #");
-        requireNotBlank(tinField.getText(), "TIN #");
-        requireNotBlank(pagIbigField.getText(), "Pag-IBIG #");
-        requireNotBlank(positionField.getText(), "Position");
-        requireNotBlank(supervisorField.getText(), "Immediate Supervisor");
-
-        parseDecimalRequired(basicSalaryField.getText(), "Basic Salary");
-        parseDecimalRequired(semiMonthlyRateField.getText(), "Gross Semi-monthly Rate");
-        parseDecimalRequired(hourlyRateField.getText(), "Hourly Rate");
+    public String getLastNameInput() {
+        return lastNameField.getText().trim();
     }
 
-    private void requireNotBlank(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
-        }
+    public String getFirstNameInput() {
+        return firstNameField.getText().trim();
     }
 
-    private BigDecimal parseDecimalRequired(String value, String fieldName) {
-        try {
-            String cleaned = value == null ? "" : value.trim().replace(",", "");
-            if (cleaned.isEmpty()) {
-                throw new IllegalArgumentException(fieldName + " is required.");
-            }
-            return new BigDecimal(cleaned);
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException(fieldName + " must be a valid number.");
-        }
+    public LocalDate getBirthDateInput() {
+        Date date = (Date) birthdaySpinner.getValue();
+        return date == null ? null : toLocalDate(date);
     }
 
-    private BigDecimal parseDecimalOrZero(String value) {
-        String cleaned = value == null ? "" : value.trim().replace(",", "");
-        if (cleaned.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        try {
-            return new BigDecimal(cleaned);
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("Allowance fields must be valid numbers.");
-        }
+    public String getAddressInput() {
+        return addressField.getText().trim();
+    }
+
+    public String getPhoneInput() {
+        return phoneField.getText().trim();
+    }
+
+    public String getSssInput() {
+        return sssField.getText().trim();
+    }
+
+    public String getPhilHealthInput() {
+        return philHealthField.getText().trim();
+    }
+
+    public String getTinInput() {
+        return tinField.getText().trim();
+    }
+
+    public String getPagIbigInput() {
+        return pagIbigField.getText().trim();
+    }
+
+    public String getStatusInput() {
+        Object selected = statusCombo.getSelectedItem();
+        return selected == null ? "" : selected.toString().trim();
+    }
+
+    public String getPositionInput() {
+        return positionField.getText().trim();
+    }
+
+    public String getSupervisorInput() {
+        return supervisorField.getText().trim();
+    }
+
+    public String getBasicSalaryInput() {
+        return basicSalaryField.getText().trim();
+    }
+
+    public String getRiceSubsidyInput() {
+        return riceSubsidyField.getText().trim();
+    }
+
+    public String getPhoneAllowanceInput() {
+        return phoneAllowanceField.getText().trim();
+    }
+
+    public String getClothingAllowanceInput() {
+        return clothingAllowanceField.getText().trim();
+    }
+
+    public String getSemiMonthlyRateInput() {
+        return semiMonthlyRateField.getText().trim();
+    }
+
+    public String getHourlyRateInput() {
+        return hourlyRateField.getText().trim();
+    }
+
+    public String getRoleInput() {
+        Object selected = roleCombo.getSelectedItem();
+        return selected == null ? "" : selected.toString().trim();
     }
 
     private LocalDate toLocalDate(Date date) {
@@ -416,48 +358,11 @@ public class EmployeeFormPanel extends JPanel {
                 .toLocalDate();
     }
 
-    private Role resolveRole(String roleName) {
-        Role role = availableRoles.get(roleName);
-        if (role == null) {
-            throw new IllegalArgumentException("Invalid role selected: " + roleName);
-        }
-        return role;
-    }
-
-    private Employee createEmployeeByStatus(
-            String id,
-            String firstName,
-            String lastName,
-            LocalDate birthDate,
-            BigDecimal basicSalary,
-            BigDecimal riceSubsidy,
-            BigDecimal phoneAllowance,
-            BigDecimal clothingAllowance,
-            BigDecimal grossSemiMonthlyRate,
-            BigDecimal hourlyRate
-    ) {
-        String status = String.valueOf(statusCombo.getSelectedItem());
-
-        if ("Regular".equalsIgnoreCase(status)) {
-            return new RegularEmployee(
-                    id, firstName, lastName, birthDate,
-                    basicSalary, riceSubsidy, phoneAllowance, clothingAllowance,
-                    grossSemiMonthlyRate, hourlyRate
-            );
-        }
-
-        return new ProbationaryEmployee(
-                id, firstName, lastName, birthDate,
-                basicSalary, riceSubsidy, phoneAllowance, clothingAllowance,
-                grossSemiMonthlyRate, hourlyRate
-        );
-    }
-
-    private String safe(String value) {
+    private String safeText(String value) {
         return value == null ? "" : value.trim();
     }
 
-    private String toText(BigDecimal value) {
+    private String toDisplayText(java.math.BigDecimal value) {
         return value == null ? "" : value.toPlainString();
     }
 }

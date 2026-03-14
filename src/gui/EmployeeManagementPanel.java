@@ -18,6 +18,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -86,6 +87,36 @@ public class EmployeeManagementPanel extends JPanel {
         return outer;
     }
 
+    private JPanel createContentArea() {
+        contentCardPanel.setOpaque(false);
+
+        contentCardPanel.add(createListCard(), CARD_LIST);
+
+        detailsPanel = new EmployeeDetailsPanel(this::showListCard);
+        detailsPanel.setActionListener(new EmployeeDetailsPanel.EmployeeDetailsActionListener() {
+            @Override
+            public void onCreate(EmployeeDetailsPanel panel) {
+                handleCreateFromDetails(panel);
+            }
+
+            @Override
+            public void onUpdate(EmployeeDetailsPanel panel) {
+                handleUpdateFromDetails(panel);
+            }
+        });
+
+        contentCardPanel.add(detailsPanel, CARD_DETAILS);
+        return contentCardPanel;
+    }
+
+    private JPanel createListCard() {
+        JPanel listCard = new JPanel(new BorderLayout(0, 16));
+        listCard.setOpaque(false);
+        listCard.add(createActionBar(), BorderLayout.NORTH);
+        listCard.add(createTableCard(), BorderLayout.CENTER);
+        return listCard;
+    }
+
     private JPanel createActionBar() {
         JPanel actions = new JPanel(new BorderLayout());
         actions.setOpaque(false);
@@ -121,36 +152,6 @@ public class EmployeeManagementPanel extends JPanel {
         updateActionButtonStates();
 
         return actions;
-    }
-
-    private JPanel createContentArea() {
-        contentCardPanel.setOpaque(false);
-
-        contentCardPanel.add(createListCard(), CARD_LIST);
-
-        detailsPanel = new EmployeeDetailsPanel(this::showListCard);
-        detailsPanel.setActionListener(new EmployeeDetailsPanel.EmployeeDetailsActionListener() {
-            @Override
-            public void onCreate(EmployeeDetailsPanel panel) {
-                handleCreateFromDetails(panel);
-            }
-
-            @Override
-            public void onUpdate(EmployeeDetailsPanel panel) {
-                handleUpdateFromDetails(panel);
-            }
-        });
-
-        contentCardPanel.add(detailsPanel, CARD_DETAILS);
-        return contentCardPanel;
-    }
-
-    private JPanel createListCard() {
-        JPanel listCard = new JPanel(new BorderLayout(0, 16));
-        listCard.setOpaque(false);
-        listCard.add(createActionBar(), BorderLayout.NORTH);
-        listCard.add(createTableCard(), BorderLayout.CENTER);
-        return listCard;
     }
 
     private JPanel createTableCard() {
@@ -420,6 +421,14 @@ public class EmployeeManagementPanel extends JPanel {
 
     private void showListCard() {
         contentCardLayout.show(contentCardPanel, CARD_LIST);
+        revalidate();
+        repaint();
+    }
+
+    private void showDetailsCard() {
+        contentCardLayout.show(contentCardPanel, CARD_DETAILS);
+        revalidate();
+        repaint();
     }
 
     private void showDetailsCard(
@@ -432,6 +441,8 @@ public class EmployeeManagementPanel extends JPanel {
         detailsPanel.displayEmployee(employee, showPersonalDetails, showGovernmentIds, showCompensation);
         detailsPanel.setMode(mode);
         contentCardLayout.show(contentCardPanel, CARD_DETAILS);
+        revalidate();
+        repaint();
     }
 
     private void handleAddEmployee() {
@@ -440,7 +451,15 @@ public class EmployeeManagementPanel extends JPanel {
             return;
         }
 
-        showDetailsCard(null, EmployeeDetailsPanel.Mode.CREATE, true, true, true);
+        detailsPanel.showCreateMode(
+                () -> {
+                    loadTable();
+                    showListCard();
+                },
+                this::showListCard
+        );
+
+        showDetailsCard();
     }
 
     private void handleUpdateEmployee() {
@@ -451,6 +470,7 @@ public class EmployeeManagementPanel extends JPanel {
 
         Employee employee = getSelectedEmployee();
         if (employee == null) {
+            showWarning("Please select an employee to update.");
             return;
         }
 
@@ -471,6 +491,7 @@ public class EmployeeManagementPanel extends JPanel {
 
         Employee employee = getSelectedEmployee();
         if (employee == null) {
+            showWarning("Please select an employee to view.");
             return;
         }
 
@@ -491,6 +512,7 @@ public class EmployeeManagementPanel extends JPanel {
 
         Employee employee = getSelectedEmployee();
         if (employee == null) {
+            showWarning("Please select an employee to delete.");
             return;
         }
 
@@ -557,17 +579,18 @@ public class EmployeeManagementPanel extends JPanel {
         request.setLastName(requireValue(panel.getLastNameInput(), "Last Name"));
         request.setBirthDate(parseBirthDate(panel.getBirthDateInput()));
 
-        request.setAddress(panel.getAddressInput());
-        request.setPhone(panel.getPhoneInput());
-        request.setSssNumber(panel.getSssInput());
-        request.setPhilHealthNumber(panel.getPhilHealthInput());
-        request.setTinNumber(panel.getTinInput());
-        request.setPagIbigNumber(panel.getPagIbigInput());
+        request.setDepartment("");
+        request.setAddress(requireValue(panel.getAddressInput(), "Address"));
+        request.setPhone(requireValue(panel.getPhoneInput(), "Phone Number"));
+        request.setSssNumber(requireValue(panel.getSssInput(), "SSS No."));
+        request.setPhilHealthNumber(requireValue(panel.getPhilHealthInput(), "PhilHealth No."));
+        request.setTinNumber(requireValue(panel.getTinInput(), "TIN"));
+        request.setPagIbigNumber(requireValue(panel.getPagIbigInput(), "Pag-IBIG No."));
 
-        request.setStatus(panel.getStatusInput());
-        request.setPosition(panel.getPositionInput());
-        request.setSupervisor(panel.getSupervisorInput());
-        request.setRoleName(panel.getRoleInput());
+        request.setStatus(requireValue(panel.getStatusInput(), "Status"));
+        request.setPosition(requireValue(panel.getPositionInput(), "Position"));
+        request.setSupervisor(requireValue(panel.getSupervisorInput(), "Immediate Supervisor"));
+        request.setRoleName(requireValue(panel.getRoleInput(), "Role"));
 
         request.setBasicSalary(parseMoney(panel.getBasicSalaryInput(), "Basic Salary"));
         request.setRiceSubsidy(parseMoney(panel.getRiceSubsidyInput(), "Rice Subsidy"));
@@ -593,7 +616,7 @@ public class EmployeeManagementPanel extends JPanel {
         try {
             return LocalDate.parse(
                     cleaned,
-                    java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy")
+                    DateTimeFormatter.ofPattern("MMMM dd, yyyy")
             );
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException(
@@ -627,15 +650,6 @@ public class EmployeeManagementPanel extends JPanel {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
-    }
-
-    private void showAccessDenied() {
-        JOptionPane.showMessageDialog(
-                this,
-                "You do not have permission for this action.",
-                "Access Denied",
-                JOptionPane.WARNING_MESSAGE
-        );
     }
 
     private void addEmployeeRow(Employee emp) {
@@ -709,5 +723,14 @@ public class EmployeeManagementPanel extends JPanel {
 
     private void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showAccessDenied() {
+        JOptionPane.showMessageDialog(
+                this,
+                "You do not have permission for this action.",
+                "Access Denied",
+                JOptionPane.WARNING_MESSAGE
+        );
     }
 }

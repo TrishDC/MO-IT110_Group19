@@ -39,9 +39,32 @@ public class EmployeeService {
         }
     }
 
-    public Employee findById(String employeeId) {
+    public String getNextEmployeeId() {
+        int max = 10000;
+
         for (Employee employee : getAllEmployees()) {
-            if (employee.getId().equalsIgnoreCase(employeeId)) {
+            if (employee == null || employee.getId() == null) {
+                continue;
+            }
+
+            try {
+                int id = Integer.parseInt(employee.getId().trim());
+                max = Math.max(max, id);
+            } catch (NumberFormatException ignored) {
+                // Skip non-numeric employee IDs
+            }
+        }
+
+        return String.valueOf(max + 1);
+    }
+
+    public Employee findById(String employeeId) {
+        if (employeeId == null || employeeId.trim().isEmpty()) {
+            return null;
+        }
+
+        for (Employee employee : getAllEmployees()) {
+            if (employee != null && employee.getId().equalsIgnoreCase(employeeId.trim())) {
                 return employee;
             }
         }
