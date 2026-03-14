@@ -32,10 +32,16 @@ public class RegularEmployee extends Employee {
                 grossSemiMonthlyRate,
                 hourlyRate
         );
+        setStatus("Regular");
+    }
+
+    @Override
+    public boolean isEligibleForAllowance() {
+        return true;
     }
 
     /**
-     * Computes the total salary for a regular employee.
+     * Regular employees receive allowances.
      */
     @Override
     public BigDecimal calculateSalary() {

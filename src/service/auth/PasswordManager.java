@@ -1,4 +1,4 @@
-package gui;
+package service.auth;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +19,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class PasswordManager {
+
     private static final String APP_DIR_NAME = ".motorph";
     private static final String CREDENTIALS_FILE_NAME = "credentials.enc";
     private static final String KEY_FILE_NAME = "master.key";
@@ -49,10 +50,10 @@ public class PasswordManager {
 
     public synchronized void upsertAccount(String username, char[] password) throws IOException {
         if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
+            throw new IllegalArgumentException("Username is required.");
         }
         if (password == null || password.length == 0) {
-            throw new IllegalArgumentException("Password is required");
+            throw new IllegalArgumentException("Password is required.");
         }
 
         byte[] salt = new byte[SALT_BYTES];
@@ -68,6 +69,7 @@ public class PasswordManager {
         if (username == null || username.trim().isEmpty() || password == null) {
             return false;
         }
+
         Map<String, CredentialRecord> records = loadRecords();
         CredentialRecord record = records.get(username.trim());
         if (record == null) {
@@ -79,7 +81,8 @@ public class PasswordManager {
     }
 
     public synchronized boolean changePassword(String username, char[] oldPassword, char[] newPassword) throws IOException {
-        if (username == null || username.trim().isEmpty() || oldPassword == null || newPassword == null || newPassword.length == 0) {
+        if (username == null || username.trim().isEmpty() ||
+                oldPassword == null || newPassword == null || newPassword.length == 0) {
             return false;
         }
 
@@ -104,6 +107,7 @@ public class PasswordManager {
 
     private Map<String, CredentialRecord> loadRecords() throws IOException {
         ensureAppDir();
+
         if (!Files.exists(credentialsPath)) {
             return new HashMap<>();
         }
@@ -121,6 +125,7 @@ public class PasswordManager {
             if (line.isBlank()) {
                 continue;
             }
+
             String[] parts = line.split(":");
             if (parts.length != 3) {
                 continue;
@@ -131,20 +136,21 @@ public class PasswordManager {
             byte[] hash = Base64.getDecoder().decode(parts[2]);
             records.put(username, new CredentialRecord(salt, hash));
         }
+
         return records;
     }
 
     private void saveRecords(Map<String, CredentialRecord> records) throws IOException {
         ensureAppDir();
+
         StringBuilder builder = new StringBuilder();
         for (Map.Entry<String, CredentialRecord> entry : records.entrySet()) {
-            builder
-                .append(entry.getKey())
-                .append(':')
-                .append(Base64.getEncoder().encodeToString(entry.getValue().salt))
-                .append(':')
-                .append(Base64.getEncoder().encodeToString(entry.getValue().hash))
-                .append(System.lineSeparator());
+            builder.append(entry.getKey())
+                    .append(':')
+                    .append(Base64.getEncoder().encodeToString(entry.getValue().salt))
+                    .append(':')
+                    .append(Base64.getEncoder().encodeToString(entry.getValue().hash))
+                    .append(System.lineSeparator());
         }
 
         String encrypted = encrypt(builder.toString());
@@ -159,6 +165,7 @@ public class PasswordManager {
 
     private SecretKey loadOrCreateAesKey() throws IOException {
         ensureAppDir();
+
         if (Files.exists(keyPath)) {
             String stored = Files.readString(keyPath, StandardCharsets.UTF_8).trim();
             byte[] keyBytes = Base64.getDecoder().decode(stored);
@@ -167,8 +174,10 @@ public class PasswordManager {
 
         byte[] keyBytes = new byte[AES_KEY_BYTES];
         secureRandom.nextBytes(keyBytes);
+
         String encoded = Base64.getEncoder().encodeToString(keyBytes);
         Files.writeString(keyPath, encoded, StandardCharsets.UTF_8);
+
         return new SecretKeySpec(keyBytes, "AES");
     }
 
@@ -181,20 +190,21 @@ public class PasswordManager {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_BITS, iv);
             cipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+
             byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
 
             String ivPart = Base64.getEncoder().encodeToString(iv);
             String dataPart = Base64.getEncoder().encodeToString(encrypted);
             return ivPart + ":" + dataPart;
         } catch (GeneralSecurityException ex) {
-            throw new IOException("Failed to encrypt credentials", ex);
+            throw new IOException("Failed to encrypt credentials.", ex);
         }
     }
 
     private String decrypt(String encryptedContent) throws IOException {
         String[] parts = encryptedContent.split(":");
         if (parts.length != 2) {
-            throw new IOException("Invalid credentials file format");
+            throw new IOException("Invalid credentials file format.");
         }
 
         try {
@@ -205,10 +215,11 @@ public class PasswordManager {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_BITS, iv);
             cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+
             byte[] plain = cipher.doFinal(cipherText);
             return new String(plain, StandardCharsets.UTF_8);
         } catch (GeneralSecurityException ex) {
-            throw new IOException("Failed to decrypt credentials", ex);
+            throw new IOException("Failed to decrypt credentials.", ex);
         }
     }
 
@@ -218,7 +229,7 @@ public class PasswordManager {
             KeySpec spec = new PBEKeySpec(password, salt, HASH_ITERATIONS, HASH_BITS);
             return skf.generateSecret(spec).getEncoded();
         } catch (GeneralSecurityException ex) {
-            throw new IOException("Failed to hash password", ex);
+            throw new IOException("Failed to hash password.", ex);
         }
     }
 
@@ -226,6 +237,7 @@ public class PasswordManager {
         if (left == null || right == null || left.length != right.length) {
             return false;
         }
+
         int diff = 0;
         for (int i = 0; i < left.length; i++) {
             diff |= left[i] ^ right[i];

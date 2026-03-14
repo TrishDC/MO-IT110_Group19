@@ -8,7 +8,6 @@ import com.opencsv.exceptions.CsvValidationException;
 import model.Employee;
 import model.ProbationaryEmployee;
 import model.RegularEmployee;
-import model.EmployeeFactory;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -56,6 +55,17 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                 String first = safe(parts, 2);
                 LocalDate birth = parseDateOrNow(safe(parts, 3));
 
+                String address = safe(parts, 4);
+                String phone = fixLongNumber(safe(parts, 5));
+                String sss = fixLongNumber(safe(parts, 6));
+                String philHealth = fixLongNumber(safe(parts, 7));
+                String tin = fixLongNumber(safe(parts, 8));
+                String pagIbig = fixLongNumber(safe(parts, 9));
+
+                String status = safe(parts, 10);
+                String position = safe(parts, 11);
+                String supervisor = safe(parts, 12);
+
                 BigDecimal basic = parseDecimalOrZero(cleanNumber(safe(parts, 13)));
                 BigDecimal rice = parseDecimalOrZero(cleanNumber(safe(parts, 14)));
                 BigDecimal phoneA = parseDecimalOrZero(cleanNumber(safe(parts, 15)));
@@ -63,11 +73,10 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                 BigDecimal semi = parseDecimalOrZero(cleanNumber(safe(parts, 17)));
                 BigDecimal hour = parseDecimalOrZero(cleanNumber(safe(parts, 18)));
 
-                String status = safe(parts, 10);
                 String roleName = safe(parts, 19).toUpperCase();
                 Role role = roles.get(roleName);
 
-                Employee employee = EmployeeFactory.createEmployee(
+                Employee employee = createEmployeeByStatus(
                         status,
                         id,
                         first,
@@ -81,16 +90,16 @@ public class CsvEmployeeRepository implements EmployeeRepository {
                         hour
                 );
 
-                setIfNotBlankAddress(employee, safe(parts, 4));
-                setIfNotBlankPhone(employee, fixLongNumber(safe(parts, 5)));
-                setIfNotBlankSss(employee, fixLongNumber(safe(parts, 6)));
-                setIfNotBlankPhilHealth(employee, fixLongNumber(safe(parts, 7)));
-                setIfNotBlankTin(employee, fixLongNumber(safe(parts, 8)));
-                setIfNotBlankPagIbig(employee, fixLongNumber(safe(parts, 9)));
+                employee.setAddress(address);
+                setIfNotBlankPhone(employee, phone);
+                setIfNotBlankSss(employee, sss);
+                setIfNotBlankPhilHealth(employee, philHealth);
+                setIfNotBlankTin(employee, tin);
+                setIfNotBlankPagIbig(employee, pagIbig);
 
                 employee.setStatus(status);
-                employee.setPosition(safe(parts, 11));
-                employee.setSupervisor(safe(parts, 12));
+                employee.setPosition(position);
+                employee.setSupervisor(supervisor);
 
                 if (role != null) {
                     employee.setRole(role);
@@ -114,24 +123,24 @@ public class CsvEmployeeRepository implements EmployeeRepository {
              CSVWriter csv = new CSVWriter(writer)) {
 
             String[] header = {
-                    "Employee",
+                    "Employee #",
                     "Last Name",
                     "First Name",
                     "Birthday",
                     "Address",
                     "Phone Number",
-                    "SSS Number",
-                    "PhilHealth Number",
-                    "TIN Number",
-                    "Pag-IBIG Number",
+                    "SSS #",
+                    "Philhealth #",
+                    "TIN #",
+                    "Pag-ibig #",
                     "Status",
                     "Position",
-                    "Supervisor",
+                    "Immediate Supervisor",
                     "Basic Salary",
                     "Rice Subsidy",
                     "Phone Allowance",
                     "Clothing Allowance",
-                    "Semi-monthly Rate",
+                    "Gross Semi-monthly Rate",
                     "Hourly Rate",
                     "Role"
             };
@@ -168,6 +177,30 @@ public class CsvEmployeeRepository implements EmployeeRepository {
 
         Files.deleteIfExists(csvPath);
         Files.move(temp, csvPath);
+    }
+
+    private Employee createEmployeeByStatus(
+            String status,
+            String id,
+            String first,
+            String last,
+            LocalDate birth,
+            BigDecimal basic,
+            BigDecimal rice,
+            BigDecimal phoneA,
+            BigDecimal clothA,
+            BigDecimal semi,
+            BigDecimal hour
+    ) {
+        if ("Probationary".equalsIgnoreCase(status)) {
+            return new ProbationaryEmployee(
+                    id, first, last, birth, basic, rice, phoneA, clothA, semi, hour
+            );
+        }
+
+        return new RegularEmployee(
+                id, first, last, birth, basic, rice, phoneA, clothA, semi, hour
+        );
     }
 
     private LocalDate parseDateOrNow(String txt) {
@@ -215,10 +248,6 @@ public class CsvEmployeeRepository implements EmployeeRepository {
             return "";
         }
         return parts[index].trim();
-    }
-
-    private void setIfNotBlankAddress(Employee employee, String value) {
-        employee.setAddress(value);
     }
 
     private void setIfNotBlankPhone(Employee employee, String value) {

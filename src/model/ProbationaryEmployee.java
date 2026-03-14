@@ -5,10 +5,9 @@ import java.time.LocalDate;
 
 /**
  * Represents a probationary employee.
+ * Business rule: probationary employees do NOT receive allowances.
  */
 public class ProbationaryEmployee extends Employee {
-
-    private static final BigDecimal STANDARD_MONTHLY_HOURS = new BigDecimal("160");
 
     public ProbationaryEmployee(
             String id,
@@ -34,14 +33,45 @@ public class ProbationaryEmployee extends Employee {
                 grossSemiMonthlyRate,
                 hourlyRate
         );
+        setStatus("Probationary");
+    }
+
+    @Override
+    public boolean isEligibleForAllowance() {
+        return false;
+    }
+
+    @Override
+    public BigDecimal getRiceSubsidy() {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal getPhoneAllowance() {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal getClothingAllowance() {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal getTotalAllowance() {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal getWeeklyAllowanceEquivalent() {
+        return BigDecimal.ZERO;
     }
 
     /**
-     * Computes salary based on hourly rate.
+     * Probationary employees receive basic salary only.
      */
     @Override
     public BigDecimal calculateSalary() {
-        return getHourlyRate().multiply(STANDARD_MONTHLY_HOURS);
+        return getBasicSalary();
     }
 
     @Override

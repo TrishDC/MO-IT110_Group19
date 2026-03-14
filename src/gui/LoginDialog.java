@@ -1,5 +1,6 @@
 package gui;
 
+import service.auth.AccountService;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -10,9 +11,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
-import service.AuthenticationService;
-import service.SessionManager;
 import model.Employee;
+import service.auth.AccountService;
 
 public class LoginDialog extends JDialog {
 
@@ -353,8 +353,11 @@ public class LoginDialog extends JDialog {
             repository.CsvEmployeeRepository repo =
                     new repository.CsvEmployeeRepository("data/MotorPH Employee Record.csv");
 
+            service.auth.AccountService accountService =
+                    new service.auth.AccountService(repo);
+
             service.AuthenticationService authService =
-                    new service.AuthenticationService(repo);
+                    new service.AuthenticationService(accountService);
 
             // Attempt login
             Employee employee = authService.login(username, password);
@@ -448,7 +451,8 @@ public class LoginDialog extends JDialog {
                 return;
             }
 
-            boolean changed = LoginService.changePassword(username, oldPassword, newPassword);
+            AccountService accountService = AccountService.createDefault();
+            boolean changed = accountService.changePassword(username, oldPassword, newPassword);
             if (!changed) {
                 JOptionPane.showMessageDialog(
                         this,
@@ -470,7 +474,8 @@ public class LoginDialog extends JDialog {
     }
 
     private void ensureInitialAccount() {
-        if (LoginService.hasAccounts()) {
+        AccountService accountService = AccountService.createDefault();
+        if (accountService.hasAccounts()) {
             return;
         }
 
@@ -517,7 +522,7 @@ public class LoginDialog extends JDialog {
                 return;
             }
 
-            boolean saved = LoginService.registerOrUpdate(username, password);
+            boolean saved = accountService.registerOrUpdate(username, password);
             if (!saved) {
                 JOptionPane.showMessageDialog(this, "Unable to save account.", "Setup", JOptionPane.ERROR_MESSAGE);
                 return;

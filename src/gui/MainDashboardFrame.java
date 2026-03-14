@@ -16,8 +16,6 @@ import RBAC.Permission;
 
 import repository.EmployeeRepository;
 import repository.CsvLeaveRepository;
-import repository.CsvEmployeeRepository;
-
 
 import service.AuthorizationService;
 import service.LeaveService;
@@ -45,6 +43,12 @@ public class MainDashboardFrame extends JFrame {
     private final EmployeeRepository employeeRepo;
     private final Path employeeCsvPath;
     private final Employee currentUser;
+    private final LeaveService leaveService;
+
+    private final String currentUserId;
+    private final String currentUserName;
+    private final String currentUserDepartment;
+    private final String currentUserPosition;
 
     private final CardLayout cardLayout;
     private final JPanel contentPanel;
@@ -58,6 +62,15 @@ public class MainDashboardFrame extends JFrame {
                 ? SessionManager.getCurrentUser()
                 : loggedInEmployee;
 
+        this.leaveService = new LeaveService(new CsvLeaveRepository());
+
+        this.currentUserId = currentUser != null ? safe(currentUser.getId()) : "";
+        this.currentUserName = currentUser != null
+                ? (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim()
+                : "";
+        this.currentUserDepartment = currentUser != null ? safe(currentUser.getDepartment()) : "";
+        this.currentUserPosition = currentUser != null ? safe(currentUser.getPosition()) : "";
+
         applyGlobalFont();
 
         this.cardLayout = new CardLayout();
@@ -67,7 +80,6 @@ public class MainDashboardFrame extends JFrame {
         initFrame();
         initCards();
 
-        // Choose your default landing page here
         showCard(CARD_EMPLOYEES);
     }
 
@@ -120,11 +132,13 @@ public class MainDashboardFrame extends JFrame {
 
         topSection.add(createNavLink("Dashboard", () -> showCard(CARD_DASHBOARD)));
         topSection.add(Box.createVerticalStrut(22));
+
         if (AuthorizationService.hasPermission(currentUser, Permission.VIEW_EMPLOYEE_LIST)
                 || AuthorizationService.hasPermission(currentUser, Permission.VIEW_EMPLOYEE)) {
             topSection.add(createNavLink("Employees", () -> showCard(CARD_EMPLOYEES)));
             topSection.add(Box.createVerticalStrut(22));
         }
+
         topSection.add(createNavLink("Payroll", () -> showCard(CARD_PAYROLL)));
         topSection.add(Box.createVerticalStrut(22));
         topSection.add(createNavLink("Leave", () -> showCard(CARD_LEAVE)));
@@ -196,20 +210,12 @@ public class MainDashboardFrame extends JFrame {
         textPanel.setOpaque(false);
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
 
-        String fullName = currentUser != null
-                ? (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim()
-                : "Name";
-
-        String position = currentUser != null
-                ? safe(currentUser.getPosition())
-                : "Position";
-
-        JLabel nameLabel = new JLabel(fullName);
+        JLabel nameLabel = new JLabel(currentUserName.isBlank() ? "Name" : currentUserName);
         nameLabel.setForeground(ACCENT);
         nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         nameLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        JLabel positionLabel = new JLabel(position);
+        JLabel positionLabel = new JLabel(currentUserPosition.isBlank() ? "Position" : currentUserPosition);
         positionLabel.setForeground(MUTED);
         positionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         positionLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -241,11 +247,15 @@ public class MainDashboardFrame extends JFrame {
     }
 
     private void initCards() {
-        contentPanel.add(createDashboardCard(), CARD_DASHBOARD);
-        contentPanel.add(createEmployeesCard(), CARD_EMPLOYEES);
-        contentPanel.add(createPayrollCard(), CARD_PAYROLL);
-        contentPanel.add(createLeaveCard(), CARD_LEAVE);
-        contentPanel.add(createAttendanceCard(), CARD_ATTENDANCE);
+        addCard(CARD_DASHBOARD, createDashboardCard());
+        addCard(CARD_EMPLOYEES, createEmployeesCard());
+        addCard(CARD_PAYROLL, createPayrollCard());
+        addCard(CARD_LEAVE, createLeaveCard());
+        addCard(CARD_ATTENDANCE, createAttendanceCard());
+    }
+
+    private void addCard(String cardName, JPanel panel) {
+        contentPanel.add(panel, cardName);
     }
 
     private JPanel createDashboardCard() {
@@ -257,26 +267,17 @@ public class MainDashboardFrame extends JFrame {
     }
 
     private JPanel createPayrollCard() {
-        return new PayrollPanel(employeeRepo, employeeCsvPath, currentUser);
+        return new PayrollPanel(currentUser, employeeRepo);
     }
 
     private JPanel createLeaveCard() {
-        LeaveService leaveService = new LeaveService(new CsvLeaveRepository());
-
-        String employeeId = currentUser != null ? safe(currentUser.getId()) : "";
-        String employeeName = currentUser != null
-                ? (safe(currentUser.getFirstName()) + " " + safe(currentUser.getLastName())).trim()
-                : "";
-        String department = currentUser != null ? safe(currentUser.getDepartment()) : "";
-        String position = currentUser != null ? safe(currentUser.getPosition()) : "";
-
         return new EmployeeLeavesPanel(
                 leaveService,
                 employeeRepo,
-                employeeId,
-                employeeName,
-                department,
-                position
+                currentUserId,
+                currentUserName,
+                currentUserDepartment,
+                currentUserPosition
         );
     }
 

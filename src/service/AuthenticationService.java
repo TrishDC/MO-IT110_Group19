@@ -1,45 +1,28 @@
 package service;
 
-import gui.PasswordManager;
 import model.Employee;
-import repository.CsvEmployeeRepository;
-import repository.EmployeeRepository;
-
-import java.io.IOException;
-import java.util.List;
+import service.auth.AccountService;
 
 public class AuthenticationService {
 
-    private final PasswordManager passwordManager;
-    private final EmployeeRepository employeeRepository;
+    private final AccountService accountService;
 
-    public AuthenticationService(EmployeeRepository employeeRepository) {
-        this.passwordManager = new PasswordManager();
-        this.employeeRepository = employeeRepository;
+    public AuthenticationService(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     public Employee login(String username, String password) {
 
-        try {
-
-            boolean valid = passwordManager.validate(username, password.toCharArray());
-
-            if (!valid) {
-                return null;
-            }
-
-            List<Employee> employees = employeeRepository.loadAll();
-
-            for (Employee e : employees) {
-                if (e.getId().equals(username)) {
-                    return e;
-                }
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (username == null || username.trim().isEmpty() || password == null) {
+            return null;
         }
 
-        return null;
+        boolean valid = accountService.validate(username.trim(), password.toCharArray());
+
+        if (!valid) {
+            return null;
+        }
+
+        return accountService.findEmployeeByUsername(username.trim());
     }
 }

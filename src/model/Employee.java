@@ -2,6 +2,7 @@ package model;
 
 import RBAC.Role;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -27,12 +28,12 @@ public abstract class Employee {
 
     private Role role;
 
-    private BigDecimal basicSalary;
-    private BigDecimal riceSubsidy;
-    private BigDecimal phoneAllowance;
-    private BigDecimal clothingAllowance;
-    private BigDecimal grossSemiMonthlyRate;
-    private BigDecimal hourlyRate;
+    private BigDecimal basicSalary = BigDecimal.ZERO;
+    private BigDecimal riceSubsidy = BigDecimal.ZERO;
+    private BigDecimal phoneAllowance = BigDecimal.ZERO;
+    private BigDecimal clothingAllowance = BigDecimal.ZERO;
+    private BigDecimal grossSemiMonthlyRate = BigDecimal.ZERO;
+    private BigDecimal hourlyRate = BigDecimal.ZERO;
 
     public Employee(
             String id,
@@ -66,7 +67,7 @@ public abstract class Employee {
         return firstName;
     }
 
-    public void setFirstName(String firstName) {
+    public final void setFirstName(String firstName) {
         this.firstName = requireNotBlank(firstName, "First name is required.");
     }
 
@@ -74,15 +75,19 @@ public abstract class Employee {
         return lastName;
     }
 
-    public void setLastName(String lastName) {
+    public final void setLastName(String lastName) {
         this.lastName = requireNotBlank(lastName, "Last name is required.");
+    }
+
+    public String getFullName() {
+        return firstName + " " + lastName;
     }
 
     public LocalDate getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(LocalDate birthDate) {
+    public final void setBirthDate(LocalDate birthDate) {
         this.birthDate = Objects.requireNonNull(birthDate, "Birth date is required.");
     }
 
@@ -240,6 +245,33 @@ public abstract class Employee {
 
     public void setHourlyRate(BigDecimal hourlyRate) {
         this.hourlyRate = requireNonNegative(hourlyRate, "Hourly rate");
+    }
+
+    public BigDecimal getTotalAllowance() {
+        if (!isEligibleForAllowance()) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return getRiceSubsidy()
+                .add(getPhoneAllowance())
+                .add(getClothingAllowance())
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getGrossMonthlySalary() {
+        return getBasicSalary()
+                .add(getTotalAllowance())
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getWeeklyAllowanceEquivalent() {
+        return getTotalAllowance()
+                .multiply(BigDecimal.valueOf(12))
+                .divide(BigDecimal.valueOf(52), 2, RoundingMode.HALF_UP);
+    }
+
+    public boolean isEligibleForAllowance() {
+        return true;
     }
 
     public abstract BigDecimal calculateSalary();
