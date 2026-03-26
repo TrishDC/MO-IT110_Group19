@@ -1,6 +1,6 @@
 package model;
 
-public class Leave {
+public class Leave implements LeaveRequest {
 
     private int leaveId;
     private String employeeId;
@@ -24,6 +24,7 @@ public class Leave {
         this.status = status;
     }
 
+    @Override
     public int getLeaveId() {
         return leaveId;
     }
@@ -32,6 +33,7 @@ public class Leave {
         this.leaveId = leaveId;
     }
 
+    @Override
     public String getEmployeeId() {
         return employeeId;
     }
@@ -40,6 +42,7 @@ public class Leave {
         this.employeeId = employeeId == null ? "" : employeeId.trim();
     }
 
+    @Override
     public String getLeaveType() {
         return leaveType;
     }
@@ -48,6 +51,7 @@ public class Leave {
         this.leaveType = leaveType == null ? "" : leaveType.trim();
     }
 
+    @Override
     public String getStartDate() {
         return startDate;
     }
@@ -56,6 +60,7 @@ public class Leave {
         this.startDate = startDate == null ? "" : startDate.trim();
     }
 
+    @Override
     public String getEndDate() {
         return endDate;
     }
@@ -64,6 +69,7 @@ public class Leave {
         this.endDate = endDate == null ? "" : endDate.trim();
     }
 
+    @Override
     public String getNotes() {
         return notes;
     }
@@ -72,6 +78,7 @@ public class Leave {
         this.notes = notes == null ? "" : notes.trim();
     }
 
+    @Override
     public String getStatus() {
         return status;
     }

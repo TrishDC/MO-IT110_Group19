@@ -6,7 +6,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Objects;
 
-public abstract class Employee {
+public abstract class Employee implements Payable, PersonRecord {
 
     private final String id;
 
@@ -59,10 +59,12 @@ public abstract class Employee {
         setHourlyRate(hourlyRate);
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public String getFirstName() {
         return firstName;
     }
@@ -71,6 +73,7 @@ public abstract class Employee {
         this.firstName = requireNotBlank(firstName, "First name is required.");
     }
 
+    @Override
     public String getLastName() {
         return lastName;
     }
@@ -79,10 +82,12 @@ public abstract class Employee {
         this.lastName = requireNotBlank(lastName, "Last name is required.");
     }
 
+    @Override
     public String getFullName() {
         return firstName + " " + lastName;
     }
 
+    @Override
     public LocalDate getBirthDate() {
         return birthDate;
     }
@@ -247,6 +252,7 @@ public abstract class Employee {
         this.hourlyRate = requireNonNegative(hourlyRate, "Hourly rate");
     }
 
+    @Override
     public BigDecimal getTotalAllowance() {
         if (!isEligibleForAllowance()) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
@@ -258,6 +264,7 @@ public abstract class Employee {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
+    @Override
     public BigDecimal getGrossMonthlySalary() {
         return getBasicSalary()
                 .add(getTotalAllowance())
@@ -274,6 +281,7 @@ public abstract class Employee {
         return true;
     }
 
+    @Override
     public abstract BigDecimal calculateSalary();
 
     public String getEmployeeType() {

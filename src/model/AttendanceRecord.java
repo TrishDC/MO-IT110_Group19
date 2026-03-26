@@ -1,15 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-/**
- *
- * @author Rhynne Gracelle
- */
-
-public class AttendanceRecord {
+public class AttendanceRecord implements TimeTrackable {
 
     private String employeeId;
     private String lastName;
@@ -31,6 +22,7 @@ public class AttendanceRecord {
         this.logOut = logOut;
     }
 
+    @Override
     public String getEmployeeId() {
         return employeeId;
     }
@@ -55,6 +47,7 @@ public class AttendanceRecord {
         this.firstName = firstName == null ? "" : firstName.trim();
     }
 
+    @Override
     public String getDate() {
         return date;
     }
@@ -63,6 +56,7 @@ public class AttendanceRecord {
         this.date = date == null ? "" : date.trim();
     }
 
+    @Override
     public String getLogIn() {
         return logIn;
     }
@@ -71,6 +65,7 @@ public class AttendanceRecord {
         this.logIn = logIn == null ? "" : logIn.trim();
     }
 
+    @Override
     public String getLogOut() {
         return logOut;
     }
