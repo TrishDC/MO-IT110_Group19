@@ -206,6 +206,7 @@ public class LoginDialog extends JDialog {
 
         tfUsername = createStyledTextField();
         pfPassword = createStyledPasswordField();
+        applyInputGuides();
 
         lblForgotPassword = new JLabel("<html><u>Forgot Password?</u></html>");
         lblForgotPassword.setFont(fontLink);
@@ -536,9 +537,16 @@ public class LoginDialog extends JDialog {
             Arrays.fill(confirm, '\0');
         }
     }
+    
+    private void applyInputGuides() {
+        InputHintUtil.applyPlaceholder(tfUsername, "Enter employee ID");
+        InputHintUtil.setTooltip(tfUsername, "Use your employee ID as username");
+
+        pfPassword.setToolTipText("Enter your account password");
+    }
 
     public String getUsername() {
-        return tfUsername.getText().trim();
+        return InputHintUtil.getActualText(tfUsername, "Enter employee ID");
     }
 
     public String getPassword() {

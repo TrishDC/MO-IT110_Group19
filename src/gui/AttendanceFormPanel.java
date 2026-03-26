@@ -33,6 +33,7 @@ public class AttendanceFormPanel extends JPanel {
 
         styleComponents();
         wireEvents();
+        applyInputGuides();
     }
 
     private JPanel buildTopBar() {
@@ -90,7 +91,7 @@ public class AttendanceFormPanel extends JPanel {
 
         left.add(createFieldBlock("Employee ID", txtEmployeeId));
         left.add(Box.createVerticalStrut(22));
-        left.add(createFieldBlock("Date", txtDate));
+        left.add(createFieldBlock("Date (MM/dd/yyyy)", txtDate));
 
         return left;
     }
@@ -100,10 +101,10 @@ public class AttendanceFormPanel extends JPanel {
         right.setOpaque(false);
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
 
-        right.add(createFieldBlock("Time In", txtTimeIn));
+        right.add(createFieldBlock("Time In (H:mm)", txtTimeIn));
         right.add(Box.createVerticalStrut(22));
-        right.add(createFieldBlock("Time Out", txtTimeOut));
-
+        right.add(createFieldBlock("Time Out (H:mm)", txtTimeOut));
+        
         return right;
     }
 
@@ -186,6 +187,18 @@ public class AttendanceFormPanel extends JPanel {
             }
         });
     }
+    
+    private void applyInputGuides() {
+        InputHintUtil.applyPlaceholder(txtEmployeeId, "e.g. 10001");
+        InputHintUtil.applyPlaceholder(txtDate, "MM/dd/yyyy");
+        InputHintUtil.applyPlaceholder(txtTimeIn, "H:mm (e.g. 8:05)");
+        InputHintUtil.applyPlaceholder(txtTimeOut, "H:mm (e.g. 17:30)");
+
+        InputHintUtil.setTooltip(txtEmployeeId, "Enter the employee ID, e.g. 10001");
+        InputHintUtil.setTooltip(txtDate, "Enter date using MM/dd/yyyy format");
+        InputHintUtil.setTooltip(txtTimeIn, "Enter time-in using 24-hour format, e.g. 8:05 or 08:05");
+        InputHintUtil.setTooltip(txtTimeOut, "Enter time-out using 24-hour format, e.g. 17:30");
+    }
 
     public void setAttendanceData(String employeeId, String date, String timeIn, String timeOut) {
         txtEmployeeId.setText(employeeId == null ? "" : employeeId);
@@ -203,19 +216,19 @@ public class AttendanceFormPanel extends JPanel {
     }
 
     public String getEmployeeId() {
-        return txtEmployeeId.getText().trim();
+        return InputHintUtil.getActualText(txtEmployeeId, "e.g. 10001");
     }
 
     public String getDate() {
-        return txtDate.getText().trim();
+        return InputHintUtil.getActualText(txtDate, "MM/dd/yyyy");
     }
 
     public String getTimeIn() {
-        return txtTimeIn.getText().trim();
+        return InputHintUtil.getActualText(txtTimeIn, "H:mm (e.g. 8:05)");
     }
 
     public String getTimeOut() {
-        return txtTimeOut.getText().trim();
+        return InputHintUtil.getActualText(txtTimeOut, "H:mm (e.g. 17:30)");
     }
 
     public void addBackListener(ActionListener listener) {

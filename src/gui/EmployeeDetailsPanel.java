@@ -5,6 +5,8 @@ import model.Employee;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
@@ -33,6 +35,8 @@ public class EmployeeDetailsPanel extends JPanel {
     private static final Color FIELD_BORDER = new Color(110, 110, 110);
     private static final Color READONLY_BG = Color.WHITE;
     private static final Color EDITABLE_BG = Color.WHITE;
+    private static final Color PLACEHOLDER_COLOR = new Color(150, 150, 150);
+    private static final Color NORMAL_TEXT_COLOR = Color.BLACK;
 
     private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 18);
     private static final Font FONT_LABEL = new Font("Segoe UI", Font.PLAIN, 13);
@@ -296,7 +300,7 @@ public class EmployeeDetailsPanel extends JPanel {
         field.setEditable(editable);
         field.setFocusable(editable);
         field.setBackground(editable ? EDITABLE_BG : READONLY_BG);
-        field.setForeground(TEXT_PRIMARY);
+        field.setForeground(field.getForeground().equals(PLACEHOLDER_COLOR) ? PLACEHOLDER_COLOR : TEXT_PRIMARY);
     }
 
     private void resetFieldReferences() {
@@ -428,12 +432,73 @@ public class EmployeeDetailsPanel extends JPanel {
         field.setPreferredSize(new Dimension(150, 34));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        String placeholder = getPlaceholderForLabel(label);
+        if ((value == null || value.trim().isEmpty()) && !placeholder.isEmpty()) {
+            applyPlaceholder(field, placeholder);
+        }
+
         section.add(labelComp);
         section.add(Box.createVerticalStrut(3));
         section.add(field);
         section.add(Box.createVerticalStrut(8));
 
         return field;
+    }
+
+    private void applyPlaceholder(JTextField field, String placeholder) {
+        field.putClientProperty("placeholder", placeholder);
+
+        if (field.getText() == null || field.getText().trim().isEmpty()) {
+            field.setText(placeholder);
+            field.setForeground(PLACEHOLDER_COLOR);
+        }
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (placeholder.equals(field.getText()) && field.isEditable()) {
+                    field.setText("");
+                    field.setForeground(NORMAL_TEXT_COLOR);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.isEditable() && field.getText().trim().isEmpty()) {
+                    field.setText(placeholder);
+                    field.setForeground(PLACEHOLDER_COLOR);
+                }
+            }
+        });
+    }
+
+    private String getPlaceholderForLabel(String label) {
+        if (label.contains("Phone")) return "09171234567";
+        if (label.contains("SSS")) return "12-1234567-1";
+        if (label.contains("PhilHealth")) return "12 digits";
+        if (label.contains("TIN")) return "123-456-789-000";
+        if (label.contains("Pag-IBIG")) return "12 digits";
+        if (label.contains("Basic Salary")) return "25000.00";
+        if (label.contains("Rice Subsidy")) return "1500.00";
+        if (label.contains("Phone Allowance")) return "1000.00";
+        if (label.contains("Clothing Allowance")) return "1000.00";
+        if (label.contains("Gross Semi-Monthly")) return "12500.00";
+        if (label.contains("Hourly Rate")) return "150.75";
+        return "";
+    }
+
+    private String cleanInput(JTextField field) {
+        if (field == null) {
+            return "";
+        }
+
+        String text = safe(field.getText());
+        String placeholder = (String) field.getClientProperty("placeholder");
+
+        if (placeholder != null && placeholder.equals(text)) {
+            return "";
+        }
+        return text;
     }
 
     public String getEmployeeIdInput() {
@@ -517,7 +582,7 @@ public class EmployeeDetailsPanel extends JPanel {
     }
 
     private String textOf(JTextField field) {
-        return field == null ? "" : safe(field.getText());
+        return cleanInput(field);
     }
 
     private String safe(String value) {

@@ -5,6 +5,8 @@ import model.Employee;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -19,6 +21,9 @@ public class EmployeeFormPanel extends JPanel {
     private static final Font LABEL_FONT = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font INPUT_FONT = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 13);
+
+    private static final Color PLACEHOLDER_COLOR = new Color(150, 150, 150);
+    private static final Color NORMAL_TEXT_COLOR = Color.BLACK;
 
     private final Runnable onBack;
     private final JLabel titleLabel = new JLabel();
@@ -60,6 +65,7 @@ public class EmployeeFormPanel extends JPanel {
         configureDateSpinner();
         configureComponents();
         buildLayout(title);
+        applyInputPlaceholders();
         setEmployee(employee);
     }
 
@@ -201,6 +207,74 @@ public class EmployeeFormPanel extends JPanel {
         return button;
     }
 
+    private void applyInputPlaceholders() {
+        applyPlaceholder(phoneField, "09171234567");
+        applyPlaceholder(sssField, "12-1234567-1");
+        applyPlaceholder(philHealthField, "12 digits");
+        applyPlaceholder(tinField, "123-456-789-000");
+        applyPlaceholder(pagIbigField, "12 digits");
+
+        applyPlaceholder(basicSalaryField, "25000.00");
+        applyPlaceholder(riceSubsidyField, "1500.00");
+        applyPlaceholder(phoneAllowanceField, "1000.00");
+        applyPlaceholder(clothingAllowanceField, "1000.00");
+        applyPlaceholder(semiMonthlyRateField, "12500.00");
+        applyPlaceholder(hourlyRateField, "150.75");
+    }
+
+    private void applyPlaceholder(JTextField field, String placeholder) {
+        field.putClientProperty("placeholder", placeholder);
+
+        if (field.getText() == null || field.getText().trim().isEmpty()) {
+            field.setText(placeholder);
+            field.setForeground(PLACEHOLDER_COLOR);
+        }
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (placeholder.equals(field.getText())) {
+                    field.setText("");
+                    field.setForeground(NORMAL_TEXT_COLOR);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.getText().trim().isEmpty()) {
+                    field.setText(placeholder);
+                    field.setForeground(PLACEHOLDER_COLOR);
+                }
+            }
+        });
+    }
+
+    private String cleanInput(JTextField field) {
+        String text = field.getText() == null ? "" : field.getText().trim();
+        String placeholder = (String) field.getClientProperty("placeholder");
+
+        if (placeholder != null && placeholder.equals(text)) {
+            return "";
+        }
+        return text;
+    }
+
+    private void restorePlaceholdersIfNeeded() {
+        JTextField[] fields = {
+                phoneField, sssField, philHealthField, tinField, pagIbigField,
+                basicSalaryField, riceSubsidyField, phoneAllowanceField,
+                clothingAllowanceField, semiMonthlyRateField, hourlyRateField
+        };
+
+        for (JTextField field : fields) {
+            String placeholder = (String) field.getClientProperty("placeholder");
+            if ((field.getText() == null || field.getText().trim().isEmpty()) && placeholder != null) {
+                field.setText(placeholder);
+                field.setForeground(PLACEHOLDER_COLOR);
+            }
+        }
+    }
+
     public void setEmployee(Employee employee) {
         this.editingEmployee = employee;
 
@@ -210,6 +284,7 @@ public class EmployeeFormPanel extends JPanel {
             idField.setText("");
             idField.setEditable(false);
             statusCombo.setEnabled(true);
+            restorePlaceholdersIfNeeded();
             return;
         }
 
@@ -218,7 +293,10 @@ public class EmployeeFormPanel extends JPanel {
         idField.setEditable(false);
 
         lastNameField.setText(safeText(employee.getLastName()));
+        lastNameField.setForeground(NORMAL_TEXT_COLOR);
+
         firstNameField.setText(safeText(employee.getFirstName()));
+        firstNameField.setForeground(NORMAL_TEXT_COLOR);
 
         if (employee.getBirthDate() != null) {
             birthdaySpinner.setValue(Date.from(
@@ -226,22 +304,41 @@ public class EmployeeFormPanel extends JPanel {
             ));
         }
 
-        addressField.setText(safeText(employee.getAddress()));
-        phoneField.setText(safeText(employee.getPhone()));
-        sssField.setText(safeText(employee.getSssNumber()));
-        philHealthField.setText(safeText(employee.getPhilHealthNumber()));
-        tinField.setText(safeText(employee.getTinNumber()));
-        pagIbigField.setText(safeText(employee.getPagIbigNumber()));
+        setActualValue(addressField, safeText(employee.getAddress()));
+        setActualValue(phoneField, safeText(employee.getPhone()));
+        setActualValue(sssField, safeText(employee.getSssNumber()));
+        setActualValue(philHealthField, safeText(employee.getPhilHealthNumber()));
+        setActualValue(tinField, safeText(employee.getTinNumber()));
+        setActualValue(pagIbigField, safeText(employee.getPagIbigNumber()));
+
         statusCombo.setSelectedItem(safeText(employee.getStatus()).isEmpty() ? "Regular" : employee.getStatus());
-        positionField.setText(safeText(employee.getPosition()));
-        supervisorField.setText(safeText(employee.getSupervisor()));
-        basicSalaryField.setText(toDisplayText(employee.getBasicSalary()));
-        riceSubsidyField.setText(toDisplayText(employee.getRiceSubsidy()));
-        phoneAllowanceField.setText(toDisplayText(employee.getPhoneAllowance()));
-        clothingAllowanceField.setText(toDisplayText(employee.getClothingAllowance()));
-        semiMonthlyRateField.setText(toDisplayText(employee.getGrossSemiMonthlyRate()));
-        hourlyRateField.setText(toDisplayText(employee.getHourlyRate()));
+
+        setActualValue(positionField, safeText(employee.getPosition()));
+        setActualValue(supervisorField, safeText(employee.getSupervisor()));
+        setActualValue(basicSalaryField, toDisplayText(employee.getBasicSalary()));
+        setActualValue(riceSubsidyField, toDisplayText(employee.getRiceSubsidy()));
+        setActualValue(phoneAllowanceField, toDisplayText(employee.getPhoneAllowance()));
+        setActualValue(clothingAllowanceField, toDisplayText(employee.getClothingAllowance()));
+        setActualValue(semiMonthlyRateField, toDisplayText(employee.getGrossSemiMonthlyRate()));
+        setActualValue(hourlyRateField, toDisplayText(employee.getHourlyRate()));
+
         roleCombo.setSelectedItem(employee.getRole() != null ? employee.getRole().getName() : "SALES");
+    }
+
+    private void setActualValue(JTextField field, String value) {
+        if (value == null || value.trim().isEmpty()) {
+            String placeholder = (String) field.getClientProperty("placeholder");
+            if (placeholder != null) {
+                field.setText(placeholder);
+                field.setForeground(PLACEHOLDER_COLOR);
+            } else {
+                field.setText("");
+                field.setForeground(NORMAL_TEXT_COLOR);
+            }
+        } else {
+            field.setText(value.trim());
+            field.setForeground(NORMAL_TEXT_COLOR);
+        }
     }
 
     public void setCreateMode() {
@@ -258,6 +355,7 @@ public class EmployeeFormPanel extends JPanel {
 
         for (JTextField field : textFields) {
             field.setText("");
+            field.setForeground(NORMAL_TEXT_COLOR);
         }
 
         birthdaySpinner.setValue(new Date());
@@ -291,23 +389,23 @@ public class EmployeeFormPanel extends JPanel {
     }
 
     public String getPhoneInput() {
-        return phoneField.getText().trim();
+        return cleanInput(phoneField);
     }
 
     public String getSssInput() {
-        return sssField.getText().trim();
+        return cleanInput(sssField);
     }
 
     public String getPhilHealthInput() {
-        return philHealthField.getText().trim();
+        return cleanInput(philHealthField);
     }
 
     public String getTinInput() {
-        return tinField.getText().trim();
+        return cleanInput(tinField);
     }
 
     public String getPagIbigInput() {
-        return pagIbigField.getText().trim();
+        return cleanInput(pagIbigField);
     }
 
     public String getStatusInput() {
@@ -324,27 +422,27 @@ public class EmployeeFormPanel extends JPanel {
     }
 
     public String getBasicSalaryInput() {
-        return basicSalaryField.getText().trim();
+        return cleanInput(basicSalaryField);
     }
 
     public String getRiceSubsidyInput() {
-        return riceSubsidyField.getText().trim();
+        return cleanInput(riceSubsidyField);
     }
 
     public String getPhoneAllowanceInput() {
-        return phoneAllowanceField.getText().trim();
+        return cleanInput(phoneAllowanceField);
     }
 
     public String getClothingAllowanceInput() {
-        return clothingAllowanceField.getText().trim();
+        return cleanInput(clothingAllowanceField);
     }
 
     public String getSemiMonthlyRateInput() {
-        return semiMonthlyRateField.getText().trim();
+        return cleanInput(semiMonthlyRateField);
     }
 
     public String getHourlyRateInput() {
-        return hourlyRateField.getText().trim();
+        return cleanInput(hourlyRateField);
     }
 
     public String getRoleInput() {
