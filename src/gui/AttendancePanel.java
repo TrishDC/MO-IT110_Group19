@@ -23,18 +23,19 @@ public class AttendancePanel extends JPanel {
     private static final String FORM_CARD = "FORM";
 
     private static final Color PAGE_BG = new Color(242, 242, 242);
-    private static final Color TEXT_DARK = new Color(25, 25, 25);
+    private static final Color TEXT_DARK = new Color(35, 35, 35);
     private static final Color MUTED_TEXT = new Color(130, 130, 130);
+
     private static final Color TABLE_BORDER = new Color(220, 220, 220);
-    private static final Color TABLE_SELECT_BG = new Color(222, 235, 255);
+    private static final Color TABLE_GRID = new Color(232, 232, 232);
+    private static final Color TABLE_ROW_EVEN = new Color(245, 245, 245);
+    private static final Color TABLE_ROW_ODD = new Color(239, 239, 239);
+    private static final Color TABLE_SELECTION = new Color(220, 228, 240);
+
     private static final Color FIELD_BORDER = new Color(180, 180, 180);
 
-    // table colors styled like your attached Employee panel
-    private static final Color TABLE_HEADER_BG = Color.BLACK;
-    private static final Color TABLE_HEADER_FG = Color.WHITE;
-    private static final Color TABLE_ROW_EVEN = new Color(245, 245, 245);
-    private static final Color TABLE_ROW_ODD = new Color(235, 235, 235);
-    private static final Color TABLE_TEXT = new Color(45, 45, 45);
+    private static final Color BLACK = Color.BLACK;
+    private static final Color WHITE = Color.WHITE;
 
     private static final String SEARCH_PLACEHOLDER = "Employee ID";
 
@@ -48,6 +49,7 @@ public class AttendancePanel extends JPanel {
     private DefaultTableModel model;
     private JScrollPane tableScrollPane;
     private JLabel emptyStateLabel;
+    private JLabel infoLabel;
 
     private JButton btnUpdate;
     private JButton btnDelete;
@@ -94,16 +96,14 @@ public class AttendancePanel extends JPanel {
     }
 
     private JPanel buildTopArea() {
-
         JPanel top = new JPanel();
         top.setOpaque(false);
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.setBorder(new EmptyBorder(0, 0, 6, 0));
+        top.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         boolean canViewBroader = attendanceService.canViewBroaderAttendance(currentUser);
         boolean canUpdateAny = attendanceService.canUpdateAnyAttendance(currentUser);
 
-        // ---------- Row 1: Search ----------
         if (canViewBroader) {
             JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             searchRow.setOpaque(false);
@@ -114,10 +114,9 @@ public class AttendancePanel extends JPanel {
             searchRow.add(txtEmployeeFilter);
 
             top.add(searchRow);
-            top.add(Box.createVerticalStrut(14));
+            top.add(Box.createVerticalStrut(12));
         }
 
-        // ---------- Row 2: Buttons ----------
         JPanel buttonRow = new JPanel(new BorderLayout());
         buttonRow.setOpaque(false);
 
@@ -128,8 +127,8 @@ public class AttendancePanel extends JPanel {
         rightButtons.setOpaque(false);
 
         if (canViewBroader) {
-            btnViewMine = createActionButton("My Records");
-            btnViewAll = createActionButton("View All");
+            btnViewMine = createBlackButton("My Records");
+            btnViewAll = createBlackButton("View All");
 
             btnViewMine.addActionListener(e -> loadMyAttendanceHistory());
             btnViewAll.addActionListener(e -> loadAttendanceHistory());
@@ -138,19 +137,17 @@ public class AttendancePanel extends JPanel {
             leftButtons.add(btnViewAll);
         }
 
-        btnUpdate = createActionButton("Update");
-        btnDelete = createActionButton("Delete");
-        btnTimeIn = createActionButton("Time In");
-        btnTimeOut = createActionButton("Time Out");
-        btnRefresh = createActionButton("Refresh");
+        btnUpdate = createBlackButton("Update");
+        btnDelete = createBlackButton("Delete");
+        btnTimeIn = createBlackButton("Time In");
+        btnTimeOut = createBlackButton("Time Out");
+        btnRefresh = createWhiteButton("Refresh");
 
-        // HR only
         if (canUpdateAny) {
             rightButtons.add(btnUpdate);
             rightButtons.add(btnDelete);
         }
 
-        // Executive: no Update, no Delete
         rightButtons.add(btnTimeIn);
         rightButtons.add(btnTimeOut);
         rightButtons.add(btnRefresh);
@@ -170,8 +167,12 @@ public class AttendancePanel extends JPanel {
     }
 
     private JPanel buildTableArea() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
+        JPanel tableCard = new JPanel(new BorderLayout());
+        tableCard.setBackground(WHITE);
+        tableCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_BORDER, 1),
+                new EmptyBorder(0, 0, 0, 0)
+        ));
 
         model = new DefaultTableModel(
                 new Object[]{"Employee ID", "Date", "Time In", "Time Out"}, 0
@@ -183,85 +184,105 @@ public class AttendancePanel extends JPanel {
         };
 
         table = new JTable(model);
-        table.setRowHeight(40);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setFillsViewportHeight(true);
-        table.setBackground(Color.WHITE);
-        table.setForeground(TABLE_TEXT);
-        table.setSelectionBackground(TABLE_SELECT_BG);
-        table.setSelectionForeground(TABLE_TEXT);
-        table.setGridColor(Color.WHITE);
-        table.setShowVerticalLines(false);
-        table.setShowHorizontalLines(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-
-        JTableHeader header = table.getTableHeader();
-        header.setBackground(TABLE_HEADER_BG);
-        header.setForeground(TABLE_HEADER_FG);
-        header.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
-        header.setReorderingAllowed(false);
-        header.setResizingAllowed(true);
-
-        DefaultTableCellRenderer headerRenderer = (DefaultTableCellRenderer) header.getDefaultRenderer();
-        headerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        headerRenderer.setBorder(new EmptyBorder(0, 12, 0, 12));
-
-        DefaultTableCellRenderer stripedRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(
-                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
-            ) {
-                JLabel label = (JLabel) super.getTableCellRendererComponent(
-                        table, value, isSelected, hasFocus, row, column
-                );
-
-                label.setBorder(new EmptyBorder(0, 12, 0, 12));
-                label.setVerticalAlignment(SwingConstants.CENTER);
-                label.setForeground(TABLE_TEXT);
-
-                if (isSelected) {
-                    label.setBackground(TABLE_SELECT_BG);
-                } else {
-                    label.setBackground(row % 2 == 0 ? TABLE_ROW_EVEN : TABLE_ROW_ODD);
-                }
-
-                if (column == 0 || column == 2 || column == 3) {
-                    label.setHorizontalAlignment(SwingConstants.CENTER);
-                } else {
-                    label.setHorizontalAlignment(SwingConstants.LEFT);
-                }
-
-                return label;
-            }
-        };
-
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(stripedRenderer);
-        }
+        styleTable();
 
         table.getColumnModel().getColumn(0).setPreferredWidth(180);
-        table.getColumnModel().getColumn(1).setPreferredWidth(220);
+        table.getColumnModel().getColumn(1).setPreferredWidth(210);
         table.getColumnModel().getColumn(2).setPreferredWidth(180);
         table.getColumnModel().getColumn(3).setPreferredWidth(180);
 
         tableScrollPane = new JScrollPane(table);
-        tableScrollPane.setBorder(BorderFactory.createLineBorder(TABLE_BORDER, 1));
-        tableScrollPane.getViewport().setBackground(Color.WHITE);
-        tableScrollPane.setOpaque(false);
-        tableScrollPane.setBackground(Color.WHITE);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableScrollPane.getViewport().setBackground(TABLE_ROW_EVEN);
+        tableScrollPane.setBackground(WHITE);
 
         emptyStateLabel = new JLabel("No attendance history found.", SwingConstants.CENTER);
-        emptyStateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        emptyStateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         emptyStateLabel.setForeground(MUTED_TEXT);
         emptyStateLabel.setOpaque(true);
-        emptyStateLabel.setBackground(Color.WHITE);
+        emptyStateLabel.setBackground(WHITE);
         emptyStateLabel.setBorder(new EmptyBorder(30, 20, 30, 20));
 
-        panel.add(tableScrollPane, BorderLayout.CENTER);
-        return panel;
+        infoLabel = new JLabel(" ");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        infoLabel.setForeground(MUTED_TEXT);
+
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setOpaque(false);
+        footer.setBorder(new EmptyBorder(10, 14, 10, 14));
+        footer.add(infoLabel, BorderLayout.WEST);
+
+        tableCard.add(tableScrollPane, BorderLayout.CENTER);
+        tableCard.add(footer, BorderLayout.SOUTH);
+
+        return tableCard;
+    }
+
+    private void styleTable() {
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setForeground(TEXT_DARK);
+        table.setBackground(TABLE_ROW_EVEN);
+        table.setRowHeight(38);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setFillsViewportHeight(true);
+
+        table.setGridColor(TABLE_GRID);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setSelectionBackground(TABLE_SELECTION);
+        table.setSelectionForeground(TEXT_DARK);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+        JTableHeader header = table.getTableHeader();
+        header.setBackground(BLACK);
+        header.setForeground(WHITE);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setReorderingAllowed(false);
+        header.setBorder(BorderFactory.createEmptyBorder());
+
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column
+                );
+
+                label.setOpaque(true);
+                label.setBackground(BLACK);
+                label.setForeground(WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(new EmptyBorder(0, 10, 0, 10));
+                return label;
+            }
+        });
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean selected, boolean focus, int row, int column) {
+
+                super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+
+                setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setVerticalAlignment(SwingConstants.CENTER);
+                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setForeground(TEXT_DARK);
+
+                if (selected) {
+                    setBackground(TABLE_SELECTION);
+                } else {
+                    setBackground(row % 2 == 0 ? TABLE_ROW_EVEN : TABLE_ROW_ODD);
+                }
+
+                return this;
+            }
+        });
     }
 
     private JPanel buildFormPage() {
@@ -385,6 +406,9 @@ public class AttendancePanel extends JPanel {
         model.setRowCount(0);
 
         if (currentUser == null) {
+            if (infoLabel != null) {
+                infoLabel.setText("0 attendance record(s) loaded.");
+            }
             refreshEmptyState();
             return;
         }
@@ -400,6 +424,10 @@ public class AttendancePanel extends JPanel {
             });
         }
 
+        if (infoLabel != null) {
+            infoLabel.setText(model.getRowCount() + " attendance record(s) loaded.");
+        }
+
         refreshEmptyState();
     }
 
@@ -407,6 +435,9 @@ public class AttendancePanel extends JPanel {
         model.setRowCount(0);
 
         if (currentUser == null) {
+            if (infoLabel != null) {
+                infoLabel.setText("0 attendance record(s) loaded.");
+            }
             refreshEmptyState();
             return;
         }
@@ -422,17 +453,23 @@ public class AttendancePanel extends JPanel {
             });
         }
 
+        if (infoLabel != null) {
+            infoLabel.setText(model.getRowCount() + " attendance record(s) loaded.");
+        }
+
         refreshEmptyState();
     }
 
     private void refreshBasedOnRole() {
         if (currentUser == null) {
+            if (infoLabel != null) {
+                infoLabel.setText("0 attendance record(s) loaded.");
+            }
             refreshEmptyState();
             return;
         }
 
         if (attendanceService.canViewBroaderAttendance(currentUser)) {
-            // Search bar intentionally not functional yet, per your note.
             loadAttendanceHistory();
             return;
         }
@@ -445,14 +482,26 @@ public class AttendancePanel extends JPanel {
         cardLayout.show(contentPanel, LIST_CARD);
     }
 
-    private JButton createActionButton(String text) {
+    private JButton createBlackButton(String text) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(130, 46));
-        button.setBackground(Color.BLACK);
-        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(104, 40));
+        button.setBackground(BLACK);
+        button.setForeground(WHITE);
         button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder());
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JButton createWhiteButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(90, 40));
+        button.setBackground(WHITE);
+        button.setForeground(BLACK);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(TABLE_BORDER));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
@@ -461,13 +510,14 @@ public class AttendancePanel extends JPanel {
         JTextField field = new JTextField(14);
         field.setPreferredSize(new Dimension(180, 40));
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        field.setForeground(Color.GRAY);
-        field.setText(SEARCH_PLACEHOLDER);
+        field.setForeground(TEXT_DARK);
+        field.setBackground(WHITE);
         field.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(FIELD_BORDER, 1, true),
                 new EmptyBorder(0, 12, 0, 12)
         ));
-        field.setBackground(Color.WHITE);
+        field.setText(SEARCH_PLACEHOLDER);
+        field.setForeground(Color.GRAY);
 
         field.addFocusListener(new FocusAdapter() {
             @Override
