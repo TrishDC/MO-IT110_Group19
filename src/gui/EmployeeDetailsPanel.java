@@ -473,7 +473,7 @@ public class EmployeeDetailsPanel extends JPanel {
     }
 
     private String getPlaceholderForLabel(String label) {
-        if (label.contains("Birth Date")) return "MM/DD/YYYY";
+        if (label.contains("Birth Date")) return "MMMM dd, yyyy";
         if (label.contains("Address")) {
             return "House No., Street, Barangay, Municipality, Postal Code, City";
         }

@@ -14,6 +14,8 @@ import java.math.BigDecimal;
 
 public final class EmployeeValidator {
 
+    private static final BigDecimal MAX_BASIC_SALARY = new BigDecimal("500000");
+
     private EmployeeValidator() {
     }
 
@@ -46,6 +48,9 @@ public final class EmployeeValidator {
         requireNonNegative(request.getClothingAllowance(), "Clothing allowance");
         requireNonNegative(request.getGrossSemiMonthlyRate(), "Gross semi-monthly rate");
         requireNonNegative(request.getHourlyRate(), "Hourly rate");
+
+        requireMaximum(request.getBasicSalary(), MAX_BASIC_SALARY,
+                "Basic salary cannot exceed 500,000.00.");
     }
 
     private static void requireNotBlank(String value, String message) {
@@ -60,6 +65,12 @@ public final class EmployeeValidator {
         }
         if (value.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(fieldName + " cannot be negative.");
+        }
+    }
+
+    private static void requireMaximum(BigDecimal value, BigDecimal maximum, String message) {
+        if (value != null && value.compareTo(maximum) > 0) {
+            throw new IllegalArgumentException(message);
         }
     }
 }

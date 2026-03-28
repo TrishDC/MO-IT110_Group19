@@ -25,7 +25,7 @@ public class EmployeeFormPanel extends JPanel {
     private static final Color PLACEHOLDER_COLOR = new Color(150, 150, 150);
     private static final Color NORMAL_TEXT_COLOR = Color.BLACK;
 
-    private static final String BIRTHDAY_PLACEHOLDER = "MM/DD/YYYY";
+    private static final String BIRTHDAY_PLACEHOLDER = "MMMM dd, yyyy";
     private static final String ADDRESS_PLACEHOLDER =
             "House No., Street, Barangay, Municipality, Postal Code, City";
 
