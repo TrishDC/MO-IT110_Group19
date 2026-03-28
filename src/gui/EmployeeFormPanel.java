@@ -25,6 +25,10 @@ public class EmployeeFormPanel extends JPanel {
     private static final Color PLACEHOLDER_COLOR = new Color(150, 150, 150);
     private static final Color NORMAL_TEXT_COLOR = Color.BLACK;
 
+    private static final String BIRTHDAY_PLACEHOLDER = "MM/DD/YYYY";
+    private static final String ADDRESS_PLACEHOLDER =
+            "House No., Street, Barangay, Municipality, Postal Code, City";
+
     private final Runnable onBack;
     private final JLabel titleLabel = new JLabel();
 
@@ -35,6 +39,7 @@ public class EmployeeFormPanel extends JPanel {
     private final JTextField lastNameField = new JTextField(18);
     private final JTextField firstNameField = new JTextField(18);
     private final JSpinner birthdaySpinner = new JSpinner(new SpinnerDateModel());
+    private final JTextField birthdayTextField = new JTextField(18);
     private final JTextField addressField = new JTextField(22);
     private final JTextField phoneField = new JTextField(14);
     private final JTextField sssField = new JTextField(16);
@@ -76,6 +81,33 @@ public class EmployeeFormPanel extends JPanel {
     private void configureDateSpinner() {
         JSpinner.DateEditor editor = new JSpinner.DateEditor(birthdaySpinner, "MM/dd/yyyy");
         birthdaySpinner.setEditor(editor);
+
+        JFormattedTextField spinnerTextField = editor.getTextField();
+        spinnerTextField.setFont(INPUT_FONT);
+        spinnerTextField.setPreferredSize(new Dimension(220, 36));
+
+        birthdayTextField.setFont(INPUT_FONT);
+        birthdayTextField.setPreferredSize(new Dimension(220, 36));
+        birthdayTextField.setText(BIRTHDAY_PLACEHOLDER);
+        birthdayTextField.setForeground(PLACEHOLDER_COLOR);
+
+        birthdayTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (BIRTHDAY_PLACEHOLDER.equals(birthdayTextField.getText())) {
+                    birthdayTextField.setText("");
+                    birthdayTextField.setForeground(NORMAL_TEXT_COLOR);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (birthdayTextField.getText() == null || birthdayTextField.getText().trim().isEmpty()) {
+                    birthdayTextField.setText(BIRTHDAY_PLACEHOLDER);
+                    birthdayTextField.setForeground(PLACEHOLDER_COLOR);
+                }
+            }
+        });
     }
 
     private void configureComponents() {
@@ -139,7 +171,7 @@ public class EmployeeFormPanel extends JPanel {
         row = addField(form, c, row, "Employee #", idField);
         row = addField(form, c, row, "Last Name", lastNameField);
         row = addField(form, c, row, "First Name", firstNameField);
-        row = addField(form, c, row, "Birthday", birthdaySpinner);
+        row = addBirthdayField(form, c, row, "Birthday", birthdaySpinner, birthdayTextField);
         row = addField(form, c, row, "Address", addressField);
         row = addField(form, c, row, "Phone Number", phoneField);
         row = addField(form, c, row, "SSS #", sssField);
@@ -167,6 +199,7 @@ public class EmployeeFormPanel extends JPanel {
 
         JButton saveBtn = createBlackButton("Save");
         saveBtn.addActionListener(e -> {
+            syncBirthdayTextToSpinner();
             if (saveListener != null) {
                 saveListener.onSave(this);
             }
@@ -195,6 +228,39 @@ public class EmployeeFormPanel extends JPanel {
         return row + 1;
     }
 
+    private int addBirthdayField(JPanel panel, GridBagConstraints c, int row, String labelText,
+                                 JSpinner spinner, JTextField placeholderField) {
+        JLabel label = new JLabel(labelText + ":");
+        label.setFont(LABEL_FONT);
+
+        JPanel birthdayPanel = new JPanel(new OverlayLayout(new JPanel()));
+        birthdayPanel.setOpaque(false);
+        birthdayPanel.setPreferredSize(new Dimension(220, 36));
+
+        spinner.setAlignmentX(0.5f);
+        spinner.setAlignmentY(0.5f);
+        placeholderField.setAlignmentX(0.5f);
+        placeholderField.setAlignmentY(0.5f);
+
+        JPanel layeredPanel = new JPanel();
+        layeredPanel.setLayout(new OverlayLayout(layeredPanel));
+        layeredPanel.setOpaque(false);
+        layeredPanel.setPreferredSize(new Dimension(220, 36));
+        layeredPanel.add(placeholderField);
+        layeredPanel.add(spinner);
+
+        c.gridx = 0;
+        c.gridy = row;
+        c.weightx = 0.32;
+        panel.add(label, c);
+
+        c.gridx = 1;
+        c.weightx = 0.68;
+        panel.add(layeredPanel, c);
+
+        return row + 1;
+    }
+
     private JButton createBlackButton(String text) {
         JButton button = new JButton(text);
         button.setFont(BUTTON_FONT);
@@ -208,6 +274,7 @@ public class EmployeeFormPanel extends JPanel {
     }
 
     private void applyInputPlaceholders() {
+        applyPlaceholder(addressField, ADDRESS_PLACEHOLDER);
         applyPlaceholder(phoneField, "09171234567");
         applyPlaceholder(sssField, "12-1234567-1");
         applyPlaceholder(philHealthField, "12 digits");
@@ -261,7 +328,7 @@ public class EmployeeFormPanel extends JPanel {
 
     private void restorePlaceholdersIfNeeded() {
         JTextField[] fields = {
-                phoneField, sssField, philHealthField, tinField, pagIbigField,
+                addressField, phoneField, sssField, philHealthField, tinField, pagIbigField,
                 basicSalaryField, riceSubsidyField, phoneAllowanceField,
                 clothingAllowanceField, semiMonthlyRateField, hourlyRateField
         };
@@ -275,6 +342,34 @@ public class EmployeeFormPanel extends JPanel {
         }
     }
 
+    private void showBirthdayPlaceholder() {
+        birthdayTextField.setVisible(true);
+        birthdayTextField.setText(BIRTHDAY_PLACEHOLDER);
+        birthdayTextField.setForeground(PLACEHOLDER_COLOR);
+    }
+
+    private void hideBirthdayPlaceholder() {
+        birthdayTextField.setVisible(false);
+    }
+
+    private void syncBirthdayTextToSpinner() {
+        String text = birthdayTextField.getText() == null ? "" : birthdayTextField.getText().trim();
+
+        if (text.isEmpty() || BIRTHDAY_PLACEHOLDER.equals(text)) {
+            return;
+        }
+
+        try {
+            java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("MM/dd/yyyy");
+            format.setLenient(false);
+            Date parsedDate = format.parse(text);
+            if (parsedDate != null) {
+                birthdaySpinner.setValue(parsedDate);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     public void setEmployee(Employee employee) {
         this.editingEmployee = employee;
 
@@ -285,6 +380,7 @@ public class EmployeeFormPanel extends JPanel {
             idField.setEditable(false);
             statusCombo.setEnabled(true);
             restorePlaceholdersIfNeeded();
+            showBirthdayPlaceholder();
             return;
         }
 
@@ -299,9 +395,15 @@ public class EmployeeFormPanel extends JPanel {
         firstNameField.setForeground(NORMAL_TEXT_COLOR);
 
         if (employee.getBirthDate() != null) {
-            birthdaySpinner.setValue(Date.from(
+            Date birthDate = Date.from(
                     employee.getBirthDate().atStartOfDay(ZoneId.systemDefault()).toInstant()
-            ));
+            );
+            birthdaySpinner.setValue(birthDate);
+            birthdayTextField.setText(new java.text.SimpleDateFormat("MM/dd/yyyy").format(birthDate));
+            birthdayTextField.setForeground(NORMAL_TEXT_COLOR);
+            hideBirthdayPlaceholder();
+        } else {
+            showBirthdayPlaceholder();
         }
 
         setActualValue(addressField, safeText(employee.getAddress()));
@@ -359,6 +461,10 @@ public class EmployeeFormPanel extends JPanel {
         }
 
         birthdaySpinner.setValue(new Date());
+        birthdayTextField.setText(BIRTHDAY_PLACEHOLDER);
+        birthdayTextField.setForeground(PLACEHOLDER_COLOR);
+        showBirthdayPlaceholder();
+
         statusCombo.setSelectedItem("Regular");
         roleCombo.setSelectedItem("SALES");
     }
@@ -380,12 +486,19 @@ public class EmployeeFormPanel extends JPanel {
     }
 
     public LocalDate getBirthDateInput() {
+        syncBirthdayTextToSpinner();
+
+        String text = birthdayTextField.getText() == null ? "" : birthdayTextField.getText().trim();
+        if (text.isEmpty() || BIRTHDAY_PLACEHOLDER.equals(text)) {
+            return null;
+        }
+
         Date date = (Date) birthdaySpinner.getValue();
         return date == null ? null : toLocalDate(date);
     }
 
     public String getAddressInput() {
-        return addressField.getText().trim();
+        return cleanInput(addressField);
     }
 
     public String getPhoneInput() {

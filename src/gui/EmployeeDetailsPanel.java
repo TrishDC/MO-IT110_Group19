@@ -473,7 +473,11 @@ public class EmployeeDetailsPanel extends JPanel {
     }
 
     private String getPlaceholderForLabel(String label) {
-        if (label.contains("Phone")) return "09171234567";
+        if (label.contains("Birth Date")) return "MM/DD/YYYY";
+        if (label.contains("Address")) {
+            return "House No., Street, Barangay, Municipality, Postal Code, City";
+        }
+        if (label.contains("Phone No.")) return "09171234567";
         if (label.contains("SSS")) return "12-1234567-1";
         if (label.contains("PhilHealth")) return "12 digits";
         if (label.contains("TIN")) return "123-456-789-000";
