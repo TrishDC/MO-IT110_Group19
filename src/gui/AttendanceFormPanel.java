@@ -104,7 +104,7 @@ public class AttendanceFormPanel extends JPanel {
         right.add(createFieldBlock("Time In (H:mm)", txtTimeIn));
         right.add(Box.createVerticalStrut(22));
         right.add(createFieldBlock("Time Out (H:mm)", txtTimeOut));
-        
+
         return right;
     }
 
@@ -187,17 +187,12 @@ public class AttendanceFormPanel extends JPanel {
             }
         });
     }
-    
-    private void applyInputGuides() {
-        InputHintUtil.applyPlaceholder(txtEmployeeId, "e.g. 10001");
-        InputHintUtil.applyPlaceholder(txtDate, "MM/dd/yyyy");
-        InputHintUtil.applyPlaceholder(txtTimeIn, "H:mm (e.g. 8:05)");
-        InputHintUtil.applyPlaceholder(txtTimeOut, "H:mm (e.g. 17:30)");
 
-        InputHintUtil.setTooltip(txtEmployeeId, "Enter the employee ID, e.g. 10001");
-        InputHintUtil.setTooltip(txtDate, "Enter date using MM/dd/yyyy format");
-        InputHintUtil.setTooltip(txtTimeIn, "Enter time-in using 24-hour format, e.g. 8:05 or 08:05");
-        InputHintUtil.setTooltip(txtTimeOut, "Enter time-out using 24-hour format, e.g. 17:30");
+    private void applyInputGuides() {
+        txtEmployeeId.setToolTipText("Enter the employee ID, e.g. 10001");
+        txtDate.setToolTipText("Enter date using MM/dd/yyyy format");
+        txtTimeIn.setToolTipText("Enter time-in using 24-hour format, e.g. 8:05 or 08:05");
+        txtTimeOut.setToolTipText("Enter time-out using 24-hour format, e.g. 17:30");
     }
 
     public void setAttendanceData(String employeeId, String date, String timeIn, String timeOut) {
@@ -216,19 +211,19 @@ public class AttendanceFormPanel extends JPanel {
     }
 
     public String getEmployeeId() {
-        return InputHintUtil.getActualText(txtEmployeeId, "e.g. 10001");
+        return txtEmployeeId.getText().trim();
     }
 
     public String getDate() {
-        return InputHintUtil.getActualText(txtDate, "MM/dd/yyyy");
+        return txtDate.getText().trim();
     }
 
     public String getTimeIn() {
-        return InputHintUtil.getActualText(txtTimeIn, "H:mm (e.g. 8:05)");
+        return txtTimeIn.getText().trim();
     }
 
     public String getTimeOut() {
-        return InputHintUtil.getActualText(txtTimeOut, "H:mm (e.g. 17:30)");
+        return txtTimeOut.getText().trim();
     }
 
     public void addBackListener(ActionListener listener) {

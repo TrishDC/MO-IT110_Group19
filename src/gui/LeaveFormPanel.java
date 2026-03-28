@@ -51,8 +51,7 @@ public class LeaveFormPanel extends JPanel {
 
         styleComponents();
         wireEvents();
-        applyInputGuides();
-
+        
         cmbStatus.setSelectedItem("Pending");
         cmbStatus.setEnabled(false);
         txtEmployeeId.setEditable(false);
@@ -415,13 +414,5 @@ public class LeaveFormPanel extends JPanel {
     public void setEmployeeIdValue(String employeeId) {
         txtEmployeeId.setText(employeeId == null ? "" : employeeId);
     }
-    
-    private void applyInputGuides() {
-        InputHintUtil.setTooltip(txtEmployeeId, "Enter a valid employee ID, e.g. 10001");
-        InputHintUtil.setTooltip(dcStartDate, "Select the leave start date");
-        InputHintUtil.setTooltip(dcEndDate, "Select the leave end date");
-        InputHintUtil.setTooltip(cmbLeaveType, "Select the type of leave");
-        InputHintUtil.setTooltip(txtNotes, "Optional notes. Maximum recommended length: 250 characters.");
-        InputHintUtil.setTooltip(cmbStatus, "HR may update the leave request status here");
-    }
+   
 }

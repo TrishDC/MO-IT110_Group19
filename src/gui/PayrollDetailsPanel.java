@@ -377,11 +377,19 @@ public class PayrollDetailsPanel extends JPanel {
 
         hourlyRateField.setText(formatMoney(result.getHourlyRate()));
 
-        if (mode == Mode.GENERATE) {
-            if (!hoursWorkedField.hasFocus()) {
-                hoursWorkedField.setText(formatMoney(result.getHoursWorked()));
-            }
-        } else {
+        /*
+         * IMPORTANT FIX:
+         * Do NOT call hoursWorkedField.setText(...) while the user is typing in GENERATE mode.
+         * That causes Swing's "Attempt to mutate in notification" exception because the field's
+         * DocumentListener triggers a refresh, and the refresh tries to write back into the same
+         * document during notification.
+         *
+         * In GENERATE mode, the hours worked field is the input source, so we leave the user's
+         * current text untouched.
+         *
+         * In VIEW mode, it is safe to populate it because it is not acting as a live input field.
+         */
+        if (mode == Mode.VIEW) {
             hoursWorkedField.setText(formatMoney(result.getHoursWorked()));
         }
 

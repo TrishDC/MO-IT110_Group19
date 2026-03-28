@@ -1,6 +1,8 @@
 package gui;
 
+import model.Employee;
 import service.auth.AccountService;
+
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -10,9 +12,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
-
-import model.Employee;
-import service.auth.AccountService;
 
 public class LoginDialog extends JDialog {
 
@@ -206,7 +205,6 @@ public class LoginDialog extends JDialog {
 
         tfUsername = createStyledTextField();
         pfPassword = createStyledPasswordField();
-        applyInputGuides();
 
         lblForgotPassword = new JLabel("<html><u>Forgot Password?</u></html>");
         lblForgotPassword.setFont(fontLink);
@@ -537,16 +535,10 @@ public class LoginDialog extends JDialog {
             Arrays.fill(confirm, '\0');
         }
     }
-    
-    private void applyInputGuides() {
-        InputHintUtil.applyPlaceholder(tfUsername, "Enter employee ID");
-        InputHintUtil.setTooltip(tfUsername, "Use your employee ID as username");
-
-        pfPassword.setToolTipText("Enter your account password");
-    }
+   
 
     public String getUsername() {
-        return InputHintUtil.getActualText(tfUsername, "Enter employee ID");
+        return tfUsername.getText().trim();
     }
 
     public String getPassword() {
